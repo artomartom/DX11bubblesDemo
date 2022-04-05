@@ -3,6 +3,8 @@
 #include "pch.hpp"
 #include "Visual/DeviceResource.hpp"
 
+const float RTVClearColor[4]{0.99f, 0.22f, 0.99f, 0.99f};
+
 class CApp : public CoreApp
 {
 
@@ -23,16 +25,16 @@ public:
     H_FAIL(m_pDeviceResource->CreateDeviceResources());
     SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cx));
   };
+
   void OnPaint() const noexcept
   {
-    float e[4]{0.99f, 0.22f, 0.99f, 0.99f};
 
-    m_pDeviceResource->GetContext()->ClearRenderTargetView(m_pDeviceResource->GetRenderTargetView().Get(), e);
+    m_pDeviceResource->GetContext()->ClearRenderTargetView(m_pDeviceResource->GetRenderTargetView().Get(), RTVClearColor);
     m_pDeviceResource->GetSwapChain()->Present(1u, 0u);
   };
 
 private:
-  void SetViewPort(float Width, float Height)
+  void SetViewPort(float Width, float Height) const noexcept
   {
 
     D3D11_VIEWPORT ViewPortDesc{};

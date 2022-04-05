@@ -4,9 +4,10 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
   ${PROJECT_SOURCE_DIR}/bubblesDemo.exe.manifest
   ${PROJECT_SOURCE_DIR}/Visual/DeviceResource.cpp
+  ${PROJECT_SOURCE_DIR}/Visual/Loader.cpp
 )
 
-option(MAKEGUI "build  as a GUI rather then console app" OFF)
+option(MAKEGUI "build  as a GUI rather then console app" ON)
 
 if(MAKEGUI)
   set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
