@@ -1,0 +1,202 @@
+Microsoft (R) Direct3D Shader Compiler 10.1 (using C:\Program Files (x86)\Windows Kits\10\bin\10.0.22000.0\x64\D3DCOMPILER_47.dll)
+Copyright (C) 2013 Microsoft. All rights reserved.
+
+Usage: fxc <options> <files>
+
+   /?, /help           print this message
+
+   /T <profile>        target profile
+   /E <name>           entrypoint name
+   /I <include>        additional include path
+   /Vi                 display details about the include process
+
+   /Od                 disable optimizations
+   /Op                 disable preshaders
+   /O{0,1,2,3}         optimization level 0..3.  1 is default
+   /WX                 treat warnings as errors
+   /Vd                 disable validation
+   /Zi                 enable debugging information
+   /Zss                debug name with source information
+   /Zsb                debug name with only binary information
+   /Zpr                pack matrices in row-major order
+   /Zpc                pack matrices in column-major order
+
+   /Gpp                force partial precision
+   /Gfa                avoid flow control constructs
+   /Gfp                prefer flow control constructs
+   /Gdp                disable effect performance mode
+   /Ges                enable strict mode
+   /Gec                enable backwards compatibility mode
+   /Gis                force IEEE strictness
+   /Gch                compile as a child effect for FX 4.x targets
+
+   /Fo <file>          output object file
+   /Fl <file>          output a library
+   /Fc <file>          output assembly code listing file
+   /Fx <file>          output assembly code and hex listing file
+   /Fh <file>          output header file containing object code
+   /Fe <file>          output warnings and errors to a specific file
+   /Fd <file>          extract shader PDB and write to given file
+   /Vn <name>          use <name> as variable name in header file 
+   /Cc                 output color coded assembly listings
+   /Ni                 output instruction numbers in assembly listings
+   /No                 output instruction byte offset in assembly listings
+   /Lx                 output hexadecimal literals
+
+   /P <file>           preprocess to file (must be used alone)
+
+   @<file>             options response file
+   /dumpbin            load a binary file rather than compiling
+   /Qstrip_reflect     strip reflection data from 4_0+ shader bytecode
+   /Qstrip_debug       strip debug information from 4_0+ shader bytecode
+   /Qstrip_priv        strip private data from 4_0+ shader bytecode
+   /Qstrip_rootsignature         strip root signature from shader bytecode
+
+   /setrootsignature <file>      attach root signature to shader bytecode
+   /extractrootsignature <file>  extract root signature from shader bytecode
+   /verifyrootsignature <file>   verify shader bytecode against root signature
+
+   /compress           compress DX10 shader bytecode from files
+   /decompress         decompress bytecode from first file, output files should
+                       be listed in the order they were in during compression
+
+   /shtemplate <file>  template shader file for merging/matching resources
+   /mergeUAVs          merge UAV slots of template shader and current shader
+   /matchUAVs          match template shader UAV slots in current shader
+   /res_may_alias      assume that UAVs/SRVs may alias for cs_5_0+
+   /enable_unbounded_descriptor_tables  enables unbounded descriptor tables
+   /all_resources_bound  enable aggressive flattening in SM5.1+
+
+   /setprivate <file>  private data to add to compiled shader blob
+   /getprivate <file>  save private data from shader blob
+   /force_rootsig_ver <profile>  force root signature version (rootsig_1_1 if omitted)
+
+   /D <id>=<text>      define macro
+   /nologo             suppress copyright message
+
+   <profile>:
+    cs_4_0 cs_4_1 cs_5_0 cs_5_1 
+    ds_5_0 ds_5_1 
+    gs_4_0 gs_4_1 gs_5_0   gs_5_1 
+    hs_5_0 hs_5_1 
+    lib_4_0 lib_4_1 lib_4_0_level_9_1
+    lib_4_0_level_9_1_vs_only lib_4_0_level_9_1_ps_only lib_4_0_level_9_3
+    lib_4_0_level_9_3_vs_only lib_4_0_level_9_3_ps_only lib_5_0 
+    ps_2_0 ps_2_a ps_2_b ps_2_sw ps_3_0 ps_3_sw ps_4_0 ps_4_0_level_9_1
+    ps_4_0_level_9_3 ps_4_0_level_9_0 ps_4_1 ps_5_0 ps_5_1
+    rootsig_1_0   rootsig_1_1
+    tx_1_0 
+    vs_1_1 vs_2_0 vs_2_a vs_2_sw vs_3_0 vs_3_sw vs_4_0
+    vs_4_0_level_9_1 vs_4_0_level_9_3 vs_4_0_level_9_0 vs_4_1 vs_5_0 vs_5_1
+
+
+
+
+
+
+
+     #example 
+      C://Program Files (x86)//Windows Kits//10//bin//10.0.22000.0//x64//fxc.exe
+       /E Vmain /nologo /T vs_5_0 /O3 /WX /Zi 
+       /Fh
+        F://Dev//Projects//DirectXP//source//Shader//Debug//Vertex.h
+        F://Dev//Projects//DirectXP//source//Shader//Vertex.hlsl
+
+
+
+        C://Program Files (x86)//Windows Kits//10//bin//10.0.22000.0//x64//fxc.exe
+         /E Pmain /nologo /T ps_5_0  /O3 /WX  
+         /Fh  
+         F://Dev//Projects//DirectXP//source//shader//release//Pixel.hpp
+    F://Dev//Projects//DirectXP//source//Shader//Pixel.hlsl
+
+
+
+/E Vmain /nologo /T vs_5_0  /O3 /WX /Zi /Fh F://Dev//Projects//DirectXP//source//shader//debug//Vertex.hpp
+ F://Dev//Projects//DirectXP//source//Shader//Vertex.hlsl
+ 
+/E Pmain /nologo /T ps_5_0  /O3 /WX /Zi /Fh F://Dev//Projects//DirectXP//source//shader//debug//Pixel.hpp
+ F://Dev//Projects//DirectXP//source//Shader//Pixel.hlsl
+
+
+     
+        & "C://Program Files (x86)//Windows Kits//10//bin//10.0.22000.0//x64//fxc.exe"  `
+          /E   Vmain /nologo                                                             `
+         /T   vs_5_0  /O3 /WX    /Zi                                                                        `
+        /Fh "$debugout//Vertex.h"                                                                            `
+        "$in//Vertex.hlsl" 
+
+
+
+        
+
+
+Get-ChildItem -Path $dir -Directory -Recurse |
+ForEach-Object { 
+    $path = $_.FullName
+    
+
+}
+################################################
+
+$exe = "C://Program Files (x86)//Windows Kits//10//bin//10.0.22000.0//x64//fxc.exe";  
+ 
+
+function Compile-hlsl {
+
+    param(
+         [PSTypeName('hlsl.Source')]$Shader 
+         [string] $BuildType
+         [string] $Config
+         )
+ 
+
+    switch ($BuildType) {
+        'vso' { $FileOutput = "/Fo";  $out = "$Dir//build//x64//$Config";    }
+        'hpp' { $FileOutput = "/Fh";  $out = "$Dir//source//shader//$Config"; }
+        Default {write-host "stupad type:  $BuildType" -ForegroundColor red }
+    }
+     
+    switch ($Config) {
+        'debug' { $Params=@("/Emain", "/nologo", "/Tvs_5_0", "/O0", "/WX", "/Zi","/Zss","/all_resources_bound" )}
+        'release' { $Params=@("/Emain", "/nologo", "/Tvs_5_0", "/O3", "/WX" )}
+        Default {write-host "stupad Config:  $Config" -ForegroundColor red }
+    }
+
+    $Params += $(Get-Profile($Shader,"5.1"));
+     
+    & "$exe"   $Params    $FileOutput  $out"//"$($Objects[$index])"."$BuildType $In"//"$($Objects[$index])".hlsl"     ;
+
+    
+    
+  
+     
+
+}
+
+ 
+
+
+function Get-Profile {
+    param(  [string]$FileName 
+            [string]$Version
+    )
+    $Profile = ($FileName -match 'Vertex'   )? ('vs_')  :   ('') ;
+    $Profile = ($FileName -match 'Pixel'    )? ('ps_')  :   ('') ;
+    $Profile = ($FileName -match 'Hull'     )? ('hs_')  :   ('') ;
+    $Profile = ($FileName -match 'Domain'   )? ('ds_')  :   ('') ;
+    $Profile = ($FileName -match 'Geometry' )? ('gs_')  :   ('') ;
+
+    $Profile +=$Version;
+    return $Profile;
+
+}
+  
+
+
+Get-ChildItem .\ -File -Include *Source.hlsl | ForEach 
+{
+
+   Compile-hlsl($_.Name)
+
+}  

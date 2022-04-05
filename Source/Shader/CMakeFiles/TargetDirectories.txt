@@ -1,0 +1,3 @@
+F:/Dev/Projects/DirectXP/source/Shader/CMakeFiles/Shaders.dir
+F:/Dev/Projects/DirectXP/source/Shader/CMakeFiles/ALL_BUILD.dir
+F:/Dev/Projects/DirectXP/source/Shader/CMakeFiles/ZERO_CHECK.dir
