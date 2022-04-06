@@ -5,6 +5,7 @@
 #include <dxgiformat.h>
 #include <assert.h>
 #include "../pch.hpp"
+#include "../Assets/App.rc.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -88,23 +89,17 @@ std::vector<byte> ReadData(
     return fileData;
 }
 
-static IWICImagingFactory **pWIC{};
-
-static IWICImagingFactory *_GetWIC()
+static HRESULT GetWIC(IWICImagingFactory **ppIWICFactory)
 {
-    IWICImagingFactory *s_Factory{};
-    
-    
 
-    H_FAIL(CoCreateInstance(
-        CLSID_WICImagingFactory,
-        nullptr,
-        CLSCTX_INPROC_SERVER,
-        __uuidof(IWICImagingFactory),
-        (LPVOID *)&s_Factory));
-
-    return s_Factory;
-}
+    return H_CHECK(CoCreateInstance(
+                       CLSID_WICImagingFactory,
+                       nullptr,
+                       CLSCTX_INPROC_SERVER,
+                       __uuidof(IWICImagingFactory),
+                       (LPVOID *)ppIWICFactory),
+                   L"WICFactory initialization fail");
+};
 
 struct WICTranslate
 {
@@ -232,41 +227,19 @@ static DXGI_FORMAT _WICToDXGI(const GUID &guid)
     return DXGI_FORMAT_UNKNOWN;
 }
 
-static size_t _WICBitsPerPixel(REFGUID targetGuid)
+static HRESULT CreateTextureFromWIC(_In_ ComPtr<IWICImagingFactory> pWIC,
+                                    _In_ ComPtr<ID3D11Device> d3dDevice,
+                                    _In_ ComPtr<ID3D11DeviceContext> d3dContext,
+                                    _In_ ComPtr<IWICBitmapFrameDecode> frame,
+                                    _Out_ ID3D11Resource **texture,
+                                    _Out_ ID3D11ShaderResourceView **textureView)
 {
-
-    if (!pWIC)
-        return 0;
-
-    ComPtr<IWICComponentInfo> cinfo;
-    H_FAIL((*pWIC)->CreateComponentInfo(targetGuid, &cinfo));
-
-    WICComponentType type;
-    H_FAIL(cinfo->GetComponentType(&type));
-
-    if (type != WICPixelFormat)
-        return 0;
-
-    ComPtr<IWICPixelFormatInfo> pfinfo;
-    H_FAIL(cinfo->QueryInterface(__uuidof(IWICPixelFormatInfo), static_cast<void **>(&pfinfo)));
-
-    UINT bpp;
-    H_FAIL(pfinfo->GetBitsPerPixel(&bpp));
-
-    return bpp;
-}
-
-static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
-                                 ID3D11DeviceContext *d3dContext,
-                                 IWICBitmapFrameDecode *frame,
-                                 ID3D11Resource **texture,
-                                 ID3D11ShaderResourceView **textureView)
-{
-    UINT width, height;
-
-    H_FAIL(frame->GetSize(&width, &height));
+    UINT width{}, height{};
+    HRESULT hr{};
+    H_FAIL(hr = frame->GetSize(&width, &height));
     ULONGLONG maxsize{};
-    assert(width > 0 && height > 0);
+    if (H_FAIL(hr) || !(width > 0 && height > 0))
+        return hr;
 
     // This is a bit conservative because the hardware could support larger textures than
     // the Feature Level defined minimums, but doing it this way is much easier and more
@@ -324,7 +297,31 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
     WICPixelFormatGUID convertGUID;
     memcpy(&convertGUID, &pixelFormat, sizeof(WICPixelFormatGUID));
 
-    size_t bpp = 0;
+    size_t bpp{};
+
+    auto _WICBitsPerPixel{
+        [pWIC](REFGUID targetGuid) -> size_t
+        {
+            if (pWIC.Get() == nullptr)
+                return 0;
+
+            ComPtr<IWICComponentInfo> cinfo;
+            H_FAIL(pWIC->CreateComponentInfo(targetGuid, &cinfo));
+
+            WICComponentType type;
+            H_FAIL(cinfo->GetComponentType(&type));
+
+            if (type != WICPixelFormat)
+                return 0;
+
+            ComPtr<IWICPixelFormatInfo> pfinfo;
+            H_FAIL(cinfo->QueryInterface(__uuidof(IWICPixelFormatInfo), static_cast<void **>(&pfinfo)));
+
+            UINT bpp;
+            H_FAIL(pfinfo->GetBitsPerPixel(&bpp));
+
+            return bpp;
+        }};
 
     DXGI_FORMAT format = _WICToDXGI(pixelFormat);
     if (format == DXGI_FORMAT_UNKNOWN)
@@ -380,13 +377,13 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
     else if (twidth != width || theight != height)
     {
         // Resize
-        if (!(*pWIC))
+        if (pWIC.Get() == nullptr)
             H_ERR(E_NOINTERFACE, L"");
 
         ComPtr<IWICBitmapScaler> scaler;
-        H_FAIL((*pWIC)->CreateBitmapScaler(&scaler));
+        H_FAIL(pWIC->CreateBitmapScaler(&scaler));
 
-        H_FAIL(scaler->Initialize(frame, twidth, theight, WICBitmapInterpolationModeFant));
+        H_FAIL(scaler->Initialize(frame.Get(), twidth, theight, WICBitmapInterpolationModeFant));
 
         WICPixelFormatGUID pfScaler;
         H_FAIL(scaler->GetPixelFormat(&pfScaler));
@@ -399,7 +396,7 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
         else
         {
             ComPtr<IWICFormatConverter> FC;
-            H_FAIL((*pWIC)->CreateFormatConverter(&FC));
+            H_FAIL(pWIC->CreateFormatConverter(&FC));
             H_FAIL(FC->Initialize(scaler.Get(), convertGUID, WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom));
             H_FAIL(FC->CopyPixels(0, static_cast<UINT>(rowPitch), static_cast<UINT>(imageSize), temp.get()));
         }
@@ -407,15 +404,17 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
     else
     {
         // Format conversion but no resize
-        if (!(*pWIC))
+        if (pWIC.Get() == nullptr)
             H_ERR(E_NOINTERFACE, L"");
 
         ComPtr<IWICFormatConverter> FC;
-        H_FAIL((*pWIC)->CreateFormatConverter(&FC));
-        H_FAIL(FC->Initialize(frame, convertGUID, WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom));
+        H_FAIL(pWIC->CreateFormatConverter(&FC));
+        H_FAIL(FC->Initialize(frame.Get(), convertGUID, WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom));
         H_FAIL(FC->CopyPixels(0, static_cast<UINT>(rowPitch), static_cast<UINT>(imageSize), temp.get()));
     }
 
+    if (d3dContext.Get() == nullptr)
+        return H_ERR(E_NOINTERFACE, L"Invalid Device Context");
     // See if format is supported for auto-gen mipmaps (varies by feature level)
     bool autogen = false;
     if (d3dContext != 0 && textureView != 0) // Must have context and shader-view to auto generate mipmaps
@@ -447,9 +446,11 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
     initData.SysMemPitch = static_cast<UINT>(rowPitch);
     initData.SysMemSlicePitch = static_cast<UINT>(imageSize);
 
-    ID3D11Texture2D *tex{};
-    H_FAIL(d3dDevice->CreateTexture2D(&desc, (autogen) ? nullptr : &initData, &tex));
-    if (tex != nullptr)
+    ComPtr<ID3D11Texture2D> tex{};
+    if (H_FAIL(hr = d3dDevice->CreateTexture2D(&desc, (autogen) ? nullptr : &initData, &tex)))
+        return hr;
+
+    if (tex.Get() != nullptr)
     {
         if (textureView != nullptr)
         {
@@ -458,58 +459,87 @@ static void CreateTextureFromWIC(ID3D11Device *d3dDevice,
             SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
             SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
 
-            H_FAIL(d3dDevice->CreateShaderResourceView(tex, &SRVDesc, textureView));
+            if (H_FAIL(hr = d3dDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, textureView)))
+                return hr;
 
             if (autogen)
             {
-                assert(d3dContext != 0);
-                d3dContext->UpdateSubresource(tex, 0, nullptr, temp.get(), static_cast<UINT>(rowPitch), static_cast<UINT>(imageSize));
+
+                d3dContext->UpdateSubresource(tex.Get(), 0, nullptr, temp.get(), static_cast<UINT>(rowPitch), static_cast<UINT>(imageSize));
                 d3dContext->GenerateMips(*textureView);
             }
         }
 
         if (texture != nullptr)
         {
-            *texture = tex;
+            *texture = tex.Detach();
         }
     }
+
+    return S_OK;
 }
 
-HRESULT CreateWICTextureFromFile(
-    const wchar_t *filename,
-    ID3D11Resource **ppTexture,
-    ID3D11ShaderResourceView **ppTextureView,
-    const ComPtr<ID3D11Device> &d3dDevice,
-    const ComPtr<ID3D11DeviceContext> &Context )
+HRESULT CreateCircleTexture(
+    _In_ const ComPtr<ID3D11Device> &d3dDevice,
+    _In_ const ComPtr<ID3D11DeviceContext> &Context,
+    _Out_ ID3D11Resource **ppTexture,
+    _Out_ ID3D11ShaderResourceView **ppTextureView)
 {
-    auto res{CoInitializeEx(0, COINIT_MULTITHREADED)};
-    if (res != S_OK && res != S_FALSE)
-      return H_CHECK(res, L"CoInitialize failed");
 
     HRESULT hr{};
-    if (!d3dDevice || !(filename))
-    {
-        return H_CHECK(E_INVALIDARG, L"");
-    }
-
-    ComPtr<IWICImagingFactory> wicFactory{_GetWIC()};
-
-    if (!wicFactory)
-        return H_CHECK(E_NOINTERFACE, L"");
-
     ComPtr<ID3D11Resource> pTexture{};
     ComPtr<ID3D11ShaderResourceView> pTextureView{};
-    const auto filenameAbs{GetLocation() + filename};
-
-    ComPtr<IWICBitmapDecoder> decoder{};
-    if (H_FAIL(hr = wicFactory->CreateDecoderFromFilename(filenameAbs.c_str(), 0, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)))
+    ComPtr<IWICImagingFactory> pIWICFactory{};
+    if (H_FAIL(hr = GetWIC(&pIWICFactory)))
         return hr;
 
+    if (d3dDevice.Get() == nullptr)
+        return H_CHECK(E_INVALIDARG, L"");
+
+    if (!pIWICFactory)
+        return H_CHECK(E_NOINTERFACE, L"");
+
+    // Locate the resource in the application's executable.
+    W32(HRSRC imageResHandle{::FindResourceW(
+        NULL,                               // This component.
+        MAKEINTRESOURCEW(IDR_SAMPLE_IMAGE), // Resource name.
+        L"Image")});                        // Resource type.
+
+    // Load the resource to the HGLOBAL.
+    W32(HGLOBAL imageResDataHandle{::LoadResource(NULL, imageResHandle)});
+    // Lock the resource to retrieve memory pointer.
+
+    W32(void *pImageFile{::LockResource(imageResDataHandle)});
+
+    // Calculate the size.
+    W32(DWORD imageFileSize{::SizeofResource(NULL, imageResHandle)});
+
+    ComPtr<IWICStream> pIWICStream{};
+    // Create a WIC stream to map onto the memory.
+    if (H_FAIL(hr = pIWICFactory->CreateStream(&pIWICStream)))
+        return hr;
+
+    // Initialize the stream with the memory pointer and size.
+    if (H_FAIL(hr = pIWICStream->InitializeFromMemory(
+                   reinterpret_cast<BYTE *>(pImageFile),
+                   imageFileSize)))
+        return hr;
+
+    ComPtr<IWICBitmapDecoder> pDecoder{};
+
+    // Create a decoder for the stream.
+    if (H_FAIL(hr = pIWICFactory->CreateDecoderFromStream(
+                   pIWICStream.Get(),            // The stream to use to create the decoder
+                   NULL,                         // Do not prefer a particular vendor
+                   WICDecodeMetadataCacheOnLoad, // Cache metadata when needed
+                   &pDecoder)))                  // Pointer to the decoder))
+        return hr;
     ComPtr<IWICBitmapFrameDecode> frame{};
-    if (H_FAIL(hr = decoder->GetFrame(0, &frame)))
+    // Retrieve the initial frame.
+    if (H_FAIL(hr = pDecoder->GetFrame(0, &frame)))
         return hr;
-    CreateTextureFromWIC(d3dDevice.Get(), Context.Get(), frame.Get(), &pTexture, &pTextureView );
 
+    CreateTextureFromWIC(pIWICFactory.Get(), d3dDevice.Get(), Context.Get(), frame.Get(), &pTexture, &pTextureView);
     if (ppTexture != nullptr)
     {
         *ppTexture = pTexture.Detach();
@@ -518,6 +548,6 @@ HRESULT CreateWICTextureFromFile(
     {
         *ppTextureView = pTextureView.Detach();
     }
-    CoUninitialize();
+
     return S_OK;
 }

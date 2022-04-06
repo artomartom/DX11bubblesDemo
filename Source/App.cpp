@@ -1,50 +1,47 @@
 #pragma once
 
 #include "pch.hpp"
+
 #include "Visual/DeviceResource.hpp"
 
-const float RTVClearColor[4]{0.99f, 0.22f, 0.99f, 0.99f};
+using ::Microsoft::WRL::ComPtr;
 
-class CApp : public CoreApp
+
+class CApp : public CoreApp, public CRenderer
 {
 
 public:
   static int App(HINSTANCE hinst)
   {
     peekRun(Window::CCoreWindow<CApp>{hinst, {500, 500, 900, 900}});
-
     MessageBeep(5);
     return 0;
   };
 
   void OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
   {
-    SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-    m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize);
 
-    H_FAIL(m_pDeviceResource->CreateDeviceResources());
+    SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
+    m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize,CRenderer::m_pContext);
+    H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
     SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cx));
   };
 
   void OnPaint() const noexcept
   {
-
-    m_pDeviceResource->GetContext()->ClearRenderTargetView(m_pDeviceResource->GetRenderTargetView().Get(), RTVClearColor);
+     
+    CRenderer::Set();
+    CRenderer::Draw();
+    
     m_pDeviceResource->GetSwapChain()->Present(1u, 0u);
   };
 
 private:
   void SetViewPort(float Width, float Height) const noexcept
   {
-
-    D3D11_VIEWPORT ViewPortDesc{};
-    ViewPortDesc.Width = Width;
-    ViewPortDesc.Height = Height;
-    ViewPortDesc.MaxDepth = 1.0f;
-
-    m_pDeviceResource->GetContext()->RSSetViewports(1, &ViewPortDesc);
+    D3D11_VIEWPORT ViewPortDesc{Width, Height, 1.0f};
+    CRenderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
   };
-
   std::unique_ptr<CDeviceResource> m_pDeviceResource{};
 
   template <class TCoreWindow>
@@ -60,6 +57,7 @@ private:
 
       TranslateMessage(&messages);
       DispatchMessageW(&messages);
+     // window.OnPaint();
     };
     return 0;
   };

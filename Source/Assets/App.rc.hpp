@@ -1,0 +1,6 @@
+#ifndef APP_RESOURCES_HPP
+#define APP_RESOURCES_HPP
+
+#define IDR_SAMPLE_IMAGE 0x3000
+
+#endif

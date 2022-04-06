@@ -5,9 +5,10 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
   ${PROJECT_SOURCE_DIR}/bubblesDemo.exe.manifest
   ${PROJECT_SOURCE_DIR}/Visual/DeviceResource.cpp
   ${PROJECT_SOURCE_DIR}/Visual/Loader.cpp
+  ${PROJECT_SOURCE_DIR}/Assets/App.rc
 )
 
-option(MAKEGUI "build  as a GUI rather then console app" ON)
+option(MAKEGUI "build  as a GUI rather then console app" OFF)
 
 if(MAKEGUI)
   set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
