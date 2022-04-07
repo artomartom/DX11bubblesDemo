@@ -6,7 +6,6 @@
 
 using ::Microsoft::WRL::ComPtr;
 
-
 class CApp : public CoreApp, public CRenderer
 {
 
@@ -22,24 +21,33 @@ public:
   {
 
     SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-    m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize,CRenderer::m_pContext);
-    H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
+    m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize, CRenderer::m_pContext);
+      H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
     SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cx));
+
+  //  m_pDeviceResource->DrawTestTriangle(*this);
   };
 
-  void OnPaint() const noexcept
+  void OnPaint() noexcept
   {
-     
-    CRenderer::Set();
-    CRenderer::Draw();
-    
-    m_pDeviceResource->GetSwapChain()->Present(1u, 0u);
+      CRenderer::Set();
+       CRenderer::Draw();
+   // m_pDeviceResource->DrawTestTriangle(*this);
+    H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
   };
+
+  void OnClose() noexcept { m_pDeviceResource.release(); };
 
 private:
   void SetViewPort(float Width, float Height) const noexcept
   {
-    D3D11_VIEWPORT ViewPortDesc{Width, Height, 1.0f};
+    D3D11_VIEWPORT ViewPortDesc{};
+    ViewPortDesc.Width = Width;
+    ViewPortDesc.Height = Height;
+    ViewPortDesc.MinDepth = 0;
+    ViewPortDesc.MaxDepth = 1;
+    ViewPortDesc.TopLeftX = 0;
+    ViewPortDesc.TopLeftY = 0;
     CRenderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
   };
   std::unique_ptr<CDeviceResource> m_pDeviceResource{};
@@ -57,7 +65,7 @@ private:
 
       TranslateMessage(&messages);
       DispatchMessageW(&messages);
-     // window.OnPaint();
+      // window.OnPaint();
     };
     return 0;
   };

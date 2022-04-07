@@ -11,7 +11,7 @@ class CDeviceResource : public CDebugInterface
 
 public:
   CDeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext);
-
+  void  DrawTestTriangle(CRenderer &Renderer);
   HRESULT CreateDeviceResources(_Out_ CRenderer &Renderer);
 
   const ::Microsoft::WRL::ComPtr<IDXGISwapChain> &GetSwapChain() const { return m_pSwapChain; };

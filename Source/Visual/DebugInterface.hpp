@@ -102,10 +102,10 @@ public:
 
         if (m_pInfoQueue != nullptr)
             DBG_ONLY(PullDebugMessage());
-        if (m_pSDKLayerDebug != nullptr)
-            m_pSDKLayerDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
-        if (m_pDebug != nullptr)
-            m_pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+     //   if (m_pSDKLayerDebug != nullptr)
+          //  m_pSDKLayerDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
+     //   if (m_pDebug != nullptr)
+           // m_pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
         if (m_hDxgiDebugDLL != 0)
             ::FreeLibrary(m_hDxgiDebugDLL);
     };
