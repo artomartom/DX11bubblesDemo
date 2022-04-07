@@ -20,11 +20,7 @@ void CDeviceResource::DrawTestTriangle(CRenderer &Renderer)
 
    struct Vertex
    {
-      float x;
-      float y;
-      float r;
-      float g;
-      float b;
+      float x, y, r, g, b;
    };
 
    // create vertex buffer (1 2d triangle at center of screen)
@@ -134,9 +130,11 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
 #include "../Shader/Debug/Vertex.hpp"
 
       const D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
-          {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+          {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 
-          {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"SIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 
       };
 
@@ -168,6 +166,7 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *    Create Vertex Buffer
     */
    {
+
       Vertex Vertices[]{
           {{-0.5f, +0.5f}},
           {{+0.5f, +0.5f}},
@@ -176,10 +175,24 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
           {{+0.5f, -0.5f}},
           {{-0.5f, -0.5f}},
       };
+
+      /*
+
+      VertexOutput.uv =float2(Input.pos >0,Input.pos <0)
+   {
+       {{0.f, 0.f}},
+       {{1.f, 0.f}},
+       {{1.f, 1.f}},
+       {{0.f, 0.f}},
+       {{1.f, 1.f}},
+       {{0.f, 1.f}},
+   };
+     */
+
       Renderer.m_DrawVertexCount = _countof(Vertices);
 
       d_VertexBuffer.ByteWidth = sizeof(Vertices);
-      d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_VertexBuffer.Usage = D3D11_USAGE_IMMUTABLE;
       d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
       d_VertexBuffer.StructureByteStride = sizeof(Vertex);
 
@@ -192,7 +205,11 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *     Create  Instance  Vertex  Buffer
     */
    {
-      Instance Instancies[]{{{0.3f, 0.3f}}};
+      Instance Instancies[]{
+          /// POSITION//////SIZE///////////COLOR
+          {{+0.3f, +0.3f}, {+0.7f}, {0.6f, 0.99f, 0.99f}},
+          {{-0.3f, -0.3f}, {+0.2f}, {0.99f, 0.79f, 0.2f}},
+      };
 
       Renderer.m_DrawInstanceCount = _countof(Instancies);
 

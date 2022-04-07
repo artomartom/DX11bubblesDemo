@@ -8,87 +8,7 @@
 #include "../Assets/App.rc.hpp"
 
 using Microsoft::WRL::ComPtr;
-
-std::wstring GetLocation()
-{
-    /**GetCurrentDirectoryW :
-     * return number of characters that are written to the buffer,
-     * not including the terminating null character.
-     * If the buffer is not large enough,
-     * the return value specifies the required size of the buffer, in characters,
-     * including the null-terminating character.
-     * To determine the required buffer size,we set params to 0.
-     */
-
-    W32(auto BufferSize{::GetCurrentDirectoryW(0, 0)});
-
-    if (BufferSize < _countof(L"F:/n"))
-    {
-        std::tuple<const wchar_t *> t{L"Fatal:Unable to determine current directory"};
-        throw t;
-    };
-
-    std::wstring Location{};
-    Location.reserve(BufferSize);
-    ::SetLastError(0);
-    W32(auto res{::GetCurrentDirectoryW(Location.capacity(), &Location[0])});
-
-    if (res != (BufferSize - 1) || ::GetLastError())
-    {
-
-        std::tuple<const wchar_t *> t{L"Fatal:Unable to determine current directory"};
-        throw t;
-    }
-    else
-    {
-        return Location;
-    };
-};
-
-std::vector<byte> ReadData(
-    const wchar_t *filename)
-{
-    static std::wstring CurrentDir{GetLocation()};
-
-    CREATEFILE2_EXTENDED_PARAMETERS extendedParams = {0};
-    extendedParams.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
-    extendedParams.dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
-    extendedParams.dwFileFlags = FILE_FLAG_SEQUENTIAL_SCAN;
-    extendedParams.dwSecurityQosFlags = SECURITY_ANONYMOUS;
-    extendedParams.lpSecurityAttributes = nullptr;
-    extendedParams.hTemplateFile = nullptr;
-
-    W32(HANDLE file{
-        ::CreateFile2(
-            (CurrentDir + filename).c_str(),
-            GENERIC_READ,
-            FILE_SHARE_READ,
-            OPEN_EXISTING,
-            &extendedParams)});
-
-    if (file == INVALID_HANDLE_VALUE)
-        H_ERR(CO_E_FAILEDTOCREATEFILE, L"");
-
-    FILE_STANDARD_INFO fileInfo = {0};
-    W32(::GetFileInformationByHandleEx(
-        file,
-        FileStandardInfo,
-        &fileInfo,
-        sizeof(fileInfo)));
-
-    std::vector<byte> fileData(fileInfo.EndOfFile.LowPart);
-
-    W32(::ReadFile(
-        file,
-        fileData.data(),
-        (DWORD)fileData.size(),
-        nullptr,
-        nullptr));
-
-    ::CloseHandle(file);
-    return fileData;
-}
-
+ 
 static HRESULT GetWIC(IWICImagingFactory **ppIWICFactory)
 {
 
@@ -350,6 +270,8 @@ static HRESULT CreateTextureFromWIC(_In_ ComPtr<IWICImagingFactory> pWIC,
     if (!bpp)
         H_ERR(E_FAIL, L"");
 
+        //Log<Console>::Write(format,bpp);
+
     // Verify our target format is supported by the current device
     // (handles WDDM 1.0 or WDDM 1.1 device driver cases as well as DirectX 11.0 Runtime without 16bpp format support)
     UINT support = 0;
@@ -502,7 +424,7 @@ HRESULT CreateCircleTexture(
     // Locate the resource in the application's executable.
     W32(HRSRC imageResHandle{::FindResourceW(
         NULL,                               // This component.
-        MAKEINTRESOURCEW(IDR_SAMPLE_IMAGE), // Resource name.
+        MAKEINTRESOURCEW(IDR_CIRCLE_IMAGE), // Resource name.
         L"Image")});                        // Resource type.
 
     // Load the resource to the HGLOBAL.

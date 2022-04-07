@@ -1,12 +1,18 @@
  #include "Func.hlsl"
  
 
- 
+Texture2D    CircleTex   :TEXTURE    :register(t0);
+SamplerState  Sampler  :SAMPLER  :register(s0);
 
 struct VertexIn
+
 {   
-    float2 uv : TEXCOORD;
+	//vertex
     float2 pos : POSITION;
+	//instance
+    float2 trans : TRANSLATION;
+    float  size: SIZE;
+    float3  color: COLOR;
 
 };
 
@@ -14,23 +20,29 @@ struct VertexIn
 
 struct VertexOut
 {
-    float4 Pos : SV_Position;
-    float4 Col : COLOR0;
+    float4 pos : SV_Position;
+    float4 color : COLOR0;
+	float2 uv : TEXCOORD0;
 };
 
 struct PixelOut
 {     
-    float4 Col : SV_TARGET;
+    float4 color : SV_TARGET;
 };
 
 
 VertexOut vmain(VertexIn Input)
 {
     VertexOut VertexOutput;
-   VertexOutput.Pos=float4(Input.uv+Input.pos,0.0f,1.0f);
-     
+	
+    VertexOutput.pos= float4( (Input.pos*Input.size)  +Input.trans,0.0f,1.0f);
+    
+    VertexOutput.uv =float2(Input.pos.x >0,Input.pos.y <0);
+   
+    VertexOutput.color=float4(Input.color ,0.99f );
 
-    VertexOutput.Col=float4(0.99f,0.99f,0.99f,0.99f);
+
+     
     return VertexOutput;
 };
  
@@ -38,10 +50,10 @@ PixelOut  pmain(VertexOut Input)
 {
 
     PixelOut output;
-  //   output.Col = CircleTex.Sample(Sampler,Input.uv );
-    output.Col = float4(0.99f,0.99f,0.99f,1.f);
-
-    return output;
+    float4 e =  CircleTex.Sample(Sampler,Input.uv ) *Input.color;
+	output.color =e;
+	output.color.w=0.0f*output.color.x ;
+	return output;
 };
 
  struct VSOut
@@ -50,6 +62,9 @@ PixelOut  pmain(VertexOut Input)
 	float4 pos : SV_Position;
 };
 
+
+
+ /////////////////
 VSOut trianglevmain( float2 pos : Position,float3 color : Color )
 {
 	VSOut vso;

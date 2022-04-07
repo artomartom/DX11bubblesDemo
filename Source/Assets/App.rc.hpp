@@ -1,6 +1,6 @@
 #ifndef APP_RESOURCES_HPP
 #define APP_RESOURCES_HPP
 
-#define IDR_SAMPLE_IMAGE 0x3000
+#define IDR_CIRCLE_IMAGE 0x3000
 
 #endif

@@ -4,16 +4,18 @@
 
 #include "../pch.hpp"
 
-struct Instance
+
+struct Vertex
 {
     DirectX::XMFLOAT2 POSITION{};
 };
 
-struct Vertex
+struct Instance
 {
-    DirectX::XMFLOAT2 TEXCOORD{};
+    DirectX::XMFLOAT2 TRANSLATION{};
+    float SIZE{};
+    DirectX::XMFLOAT3 COLOR{};
 };
-
 class CRenderer
 {
     friend class CDeviceResource;
@@ -44,9 +46,8 @@ protected:
 
     void Draw() const noexcept
     {
-        static const float RTVClearColor[4]{0.29f, 0.22f, 0.79f, 0.99f};
+        static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
         m_pContext->ClearRenderTargetView(CRenderer::m_pRTV.Get(), RTVClearColor);
-      //  m_pContext->Draw(m_DrawVertexCount, 0u);
         m_pContext->DrawInstanced(m_DrawVertexCount,m_DrawInstanceCount,0u,0u);
     };
 

@@ -22,17 +22,15 @@ public:
 
     SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
     m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize, CRenderer::m_pContext);
-      H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
+    H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
     SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cx));
-
-  //  m_pDeviceResource->DrawTestTriangle(*this);
+    CRenderer::Set();
   };
 
   void OnPaint() noexcept
   {
-      CRenderer::Set();
-       CRenderer::Draw();
-   // m_pDeviceResource->DrawTestTriangle(*this);
+    CRenderer::Draw();
+
     H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
   };
 
