@@ -33,7 +33,7 @@ CDeviceResource::CDeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_
 HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
 {
    HRESULT hr{};
-   hr=CoInitializeEx(0, COINIT_MULTITHREADED);
+   hr = CoInitialize(0);
    if (hr != S_OK && hr != S_FALSE)
    {
       return H_CHECK(hr, L"CoInitialize failed");
@@ -46,34 +46,20 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
    DBG_ONLY({
       if (H_FAIL(hr = CDebugInterface::Init(m_pDevice)))
       return hr; });
-  
 
    if (H_FAIL(hr = CreateCircleTexture(m_pDevice.Get(), Renderer.m_pContext.Get(), nullptr, &Renderer.m_pCircleTexView)))
       return hr;
-   /**
-    *  Create Rasterizer State
-    */
-   {
-      D3D11_RASTERIZER_DESC d_RasterizerState{};
-
-      d_RasterizerState.FillMode = D3D11_FILL_SOLID;
-      d_RasterizerState.CullMode = D3D11_CULL_NONE;
-      d_RasterizerState.DepthClipEnable = TRUE;
-
-      if (H_FAIL(hr = m_pDevice->CreateRasterizerState(&d_RasterizerState, &Renderer.m_pRasterizer)))
-         return hr;
-   };
 
    /**
-    *     Vertex Shader & Vertex Buffers
+    *    Create Vertex Shader
     */
    {
 #include "../Shader/Release/Vertex.hpp"
 
       D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
-          {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+          {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 
-          //  {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
       };
 
       if (H_FAIL(hr = m_pDevice->CreateVertexShader(
@@ -86,58 +72,71 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
                      VertexByteCode, sizeof(VertexByteCode),
                      &Renderer.m_pInputLayout)))
          return hr;
-      D3D11_BUFFER_DESC d_VertexBuffer{};
-      D3D11_SUBRESOURCE_DATA d_VertexData{};
-      /**
-       *    Create Vertex Buffer
-       */
+   };
+
+   /**
+    *    Pixel Shader
+    */
+   {
+#include "../Shader/Release/Pixel.hpp"
+      if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
+         return hr;
+   };
+
+   D3D11_BUFFER_DESC d_VertexBuffer{};
+   D3D11_SUBRESOURCE_DATA d_VertexData{};
+
+   /**
+    *    Create Vertex Buffer
+    */
+   {
+      struct
       {
-         struct
-         {
-
-            DirectX::XMFLOAT2 TEXCOORD{};
-         } Vertices[]{
-             {{0.f, 0.f}},
-             {{.99f, 0.f}},
-             {{.99f, .99f}},
-             {{0.f, .99f}},
-             {{0.f, 0.f}},
-             {{.99f, .99f}},
-         };
-
-         d_VertexBuffer.ByteWidth = sizeof(Vertices);
-         d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
-         d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-         d_VertexBuffer.StructureByteStride = _countof(Vertices);
-
-         d_VertexData.pSysMem = Vertices;
-         d_VertexData.SysMemPitch = sizeof(Vertices);
-         d_VertexData.SysMemSlicePitch = sizeof(Vertices[0]);
-
-         if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pVertexBuffer)))
-            return hr;
+         DirectX::XMFLOAT2 TEXCOORD{};
+      } Vertices[]{
+          {{.0f, .0f}},
+          {{1.f, 0.f}},
+          {{1.f, 1.f}},
+          {{.0f, .0f}},
+          {{1.f, 1.f}},
+          {{0.f, 1.f}},
       };
-      /**
-       *     Create  Instance  Vertex  Buffer
-       */
+
+      d_VertexBuffer.ByteWidth = sizeof(Vertices);
+      d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+      d_VertexBuffer.StructureByteStride = sizeof(Vertices[0]);
+
+      d_VertexData.pSysMem = Vertices;
+      d_VertexData.SysMemPitch = sizeof(Vertices);
+      d_VertexData.SysMemSlicePitch = sizeof(Vertices[0]);
+
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pVertexBuffer)))
+         return hr;
+   };
+   /**
+    *     Create  Instance  Vertex  Buffer
+    */
+   {
+      struct
       {
-         struct
-         {
-            DirectX::XMFLOAT2 POSITION{};
-         } Vertices[]{{{0.2f, 0.2f}}};
+         DirectX::XMFLOAT2 POSITION{};
 
-
-         d_VertexBuffer.ByteWidth = sizeof(Vertices);
-         d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
-         d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-         d_VertexBuffer.StructureByteStride = _countof(Vertices);
-         d_VertexData.pSysMem = Vertices;
-         d_VertexData.SysMemPitch = sizeof(Vertices);
-         d_VertexData.SysMemSlicePitch = sizeof(Vertices[0]);
-
-               if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
-            return hr;
+      } Vertices[1]{
+          {{.2f, .2f}},
       };
+
+      d_VertexBuffer.ByteWidth = sizeof(Vertices);
+      d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+      d_VertexBuffer.StructureByteStride = sizeof(Vertices[0]);
+
+      d_VertexData.pSysMem = Vertices;
+      d_VertexData.SysMemPitch = sizeof(Vertices);
+      d_VertexData.SysMemSlicePitch = sizeof(Vertices[0]);
+
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
+         return hr;
    };
 
    /**
@@ -153,14 +152,6 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
       SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
       if (H_FAIL(hr = m_pDevice->CreateSamplerState(&SamplerDesc, &Renderer.m_pSampler)))
-         return hr;
-   };
-   /**
-    *    Pixel Shader
-    */
-   {
-#include "../Shader/Release/Pixel.hpp"
-      if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
    };
 

@@ -8,13 +8,13 @@ cbuffer FrameConstBuffer : register(b0)
 };
 */
 
-//Texture2D    CircleTex   :TEXTURE    :register(t0);
-//SamplerState  Sampler  :SAMPLER  :register(s0);
+ Texture2D    CircleTex   :TEXTURE    :register(t0);
+ SamplerState  Sampler  :SAMPLER  :register(s0);
 
 struct VertexIn
 {
     float2 uv: TEXCOORD;
- // float2 pos :POSITION;
+    float2 pos :POSITION;
    
 };
 
@@ -36,9 +36,9 @@ struct PixelOut
 VertexOut vmain(VertexIn Input)
 {
     VertexOut VertexOutput;
-   VertexOutput.Pos=float4(Input.uv,0.99f,0.99f);
+   VertexOutput.Pos=float4(0.f,0.f,0.f,0.f);
    //  VertexOutput.Pos=float4(Input.pos+(Input.uv-0.5f),0.99f,0.99f);
-    VertexOutput.uv=float2(0.99f,0.99f);
+    VertexOutput.uv=float2(Input.uv);
     return VertexOutput;
 };
  
