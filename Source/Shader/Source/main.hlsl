@@ -4,15 +4,42 @@
 Texture2D    CircleTex   :TEXTURE    :register(t0);
 SamplerState  Sampler  :SAMPLER  :register(s0);
 
+
+
+cbuffer ViewPortBuffer : register(b0)
+{
+ float2 size ;   
+};
+
+cbuffer FrameBuffer : register(b1)
+{
+    float4 FrameTime;
+    // st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
+};
+
+
+cbuffer ColorsBuffer : register(b2)
+{
+     float3 colors[6] ;   
+};
+
 struct VertexIn
 
 {   
-	//vertex
-    float2 pos : POSITION;
+	/*vertex
+    
+          {{-1.f, +1.f}}
+          {{+1.f, +1.f}}
+          {{+1.f, -1.f}}
+          {{-1.f, +1.f}}
+          {{+1.f, -1.f}}
+          {{-1.f, -1.f}}
+      */
+    float2 pos : POSITION;  // 8
 	//instance
-    float2 trans : TRANSLATION;
-    float  size: SIZE;
-    float3  color: COLOR;
+    float2 trans : TRANSLATION;  // 8
+    float  size: SIZE;  //  4
+    uint  color: COLOR;  //  12
 
 };
 
@@ -21,39 +48,33 @@ struct VertexIn
 struct VertexOut
 {
     float4 pos : SV_Position;
-    float4 color : COLOR0;
+    uint  color : COLOR0;
 	float2 uv : TEXCOORD0;
-};
-
-struct PixelOut
-{     
-    float4 color : SV_TARGET;
-};
+}; 
 
 
 VertexOut vmain(VertexIn Input)
 {
     VertexOut VertexOutput;
-	
-    VertexOutput.pos= float4( (Input.pos*Input.size)  +Input.trans,0.0f,1.0f);
-    
     VertexOutput.uv =float2(Input.pos.x >0,Input.pos.y <0);
+    VertexOutput.color=Input.color;
+
    
-    VertexOutput.color=float4(Input.color ,0.99f );
+    float aspect= size.x/size.y   ;
+    Input.pos.x/= aspect;
+    
+    Input.pos*=Input.size;// *(100.f/ (FrameTime.z%5+FrameTime.w) );
 
-
-     
+    Input.pos +=Input.trans ;
+    VertexOutput.pos= float4(    Input.pos ,0.0f,1.0f);
+    
     return VertexOutput;
 };
  
-PixelOut  pmain(VertexOut Input)
+float4   pmain(VertexOut Input) : SV_Target
 {
-
-    PixelOut output;
-    float4 e =  CircleTex.Sample(Sampler,Input.uv ) *Input.color;
-	output.color =e;
-	output.color.w=0.0f*output.color.x ;
-	return output;
+  return   CircleTex.Sample(Sampler,Input.uv ) +float4(colors[Input.color],1.f);
+  
 };
 
  struct VSOut

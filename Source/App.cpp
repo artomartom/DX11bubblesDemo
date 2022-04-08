@@ -12,7 +12,7 @@ class CApp : public CoreApp, public CRenderer
 public:
   static int App(HINSTANCE hinst)
   {
-    peekRun(Window::CCoreWindow<CApp>{hinst, {500, 500, 900, 900}});
+    peekRun(Window::CCoreWindow<CApp>{hinst, {500, 500, 1100, 900}});
     MessageBeep(5);
     return 0;
   };
@@ -23,11 +23,19 @@ public:
     SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
     m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize, CRenderer::m_pContext);
     H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
-    SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cx));
-    CRenderer::Set();
+    CRenderer::SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
+    CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
+    CRenderer::SetPipeLine();
   };
 
-  void OnPaint() noexcept
+  void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
+  {
+         CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+  };
+
+   
+
+  void Draw() const noexcept
   {
     CRenderer::Draw();
 
@@ -37,17 +45,6 @@ public:
   void OnClose() noexcept { m_pDeviceResource.release(); };
 
 private:
-  void SetViewPort(float Width, float Height) const noexcept
-  {
-    D3D11_VIEWPORT ViewPortDesc{};
-    ViewPortDesc.Width = Width;
-    ViewPortDesc.Height = Height;
-    ViewPortDesc.MinDepth = 0;
-    ViewPortDesc.MaxDepth = 1;
-    ViewPortDesc.TopLeftX = 0;
-    ViewPortDesc.TopLeftY = 0;
-    CRenderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
-  };
   std::unique_ptr<CDeviceResource> m_pDeviceResource{};
 
   template <class TCoreWindow>
@@ -57,13 +54,11 @@ private:
 
     while (messages.message != WM_QUIT)
     {
-      PeekMessageW(&messages, 0, 0, 0, PM_REMOVE);
-      if (messages.hwnd != window.m_Handle)
-        continue;
-
-      TranslateMessage(&messages);
-      DispatchMessageW(&messages);
-      // window.OnPaint();
+      ::PeekMessageW(&messages, 0, 0, 0, PM_REMOVE);
+      ::TranslateMessage(&messages);
+      ::DispatchMessageW(&messages);
+      window.UpdateFrameBuffer();
+      window.CApp::Draw();
     };
     return 0;
   };

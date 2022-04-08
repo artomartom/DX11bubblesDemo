@@ -134,7 +134,7 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
 
           {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
           {"SIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-          {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"COLOR", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 
       };
 
@@ -168,26 +168,13 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
    {
 
       Vertex Vertices[]{
-          {{-0.5f, +0.5f}},
-          {{+0.5f, +0.5f}},
-          {{+0.5f, -0.5f}},
-          {{-0.5f, +0.5f}},
-          {{+0.5f, -0.5f}},
-          {{-0.5f, -0.5f}},
+          {{-1.f, +1.0f}},
+          {{+1.f, +1.0f}},
+          {{+1.f, -1.0f}},
+          {{-1.f, +1.0f}},
+          {{+1.f, -1.0f}},
+          {{-1.f, -1.0f}},
       };
-
-      /*
-
-      VertexOutput.uv =float2(Input.pos >0,Input.pos <0)
-   {
-       {{0.f, 0.f}},
-       {{1.f, 0.f}},
-       {{1.f, 1.f}},
-       {{0.f, 0.f}},
-       {{1.f, 1.f}},
-       {{0.f, 1.f}},
-   };
-     */
 
       Renderer.m_DrawVertexCount = _countof(Vertices);
 
@@ -206,9 +193,11 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     */
    {
       Instance Instancies[]{
-          /// POSITION//////SIZE///////////COLOR
-          {{+0.3f, +0.3f}, {+0.7f}, {0.6f, 0.99f, 0.99f}},
-          {{-0.3f, -0.3f}, {+0.2f}, {0.99f, 0.79f, 0.2f}},
+          /// POSITION//////SIZE///COLOR
+          {{+0.32f, +0.39f}, {+0.7f}, {0u}},
+          {{-0.45f, -0.2f}, {+0.2f}, {1u}},
+          {{-0.81f, -0.34f}, {+0.1f}, {2u}},
+          {{-0.23f, -0.1f}, {+0.4f}, {3u}},
       };
 
       Renderer.m_DrawInstanceCount = _countof(Instancies);
@@ -236,6 +225,42 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
       SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
       if (H_FAIL(hr = m_pDevice->CreateSamplerState(&SamplerDesc, &Renderer.m_pSampler)))
+         return hr;
+   };
+   /**
+    *     Create Constant Buffers
+    */
+   {
+
+      // ViewPortSizeBuffer   /*    */ m_pViewPortSizeBuffer
+      // FrameBuffer   /*           */ m_pFrameBuffer
+      // ColorsBuffer   /*          */ m_pColorsBuffer
+
+      D3D11_BUFFER_DESC d_ConstBuffer{};
+
+      d_ConstBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_ConstBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+      d_ConstBuffer.CPUAccessFlags = 0;
+      d_ConstBuffer.ByteWidth = (sizeof(ViewPortSizeBuffer) + 15) / 16 * 16;
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pViewPortSizeBuffer)))
+         return hr;
+
+      d_ConstBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_ConstBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+      d_ConstBuffer.CPUAccessFlags = 0;
+      d_ConstBuffer.ByteWidth = (sizeof(FrameBuffer) + 15) / 16 * 16;
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pFrameBuffer)))
+         return hr;
+
+      d_ConstBuffer.Usage = D3D11_USAGE_IMMUTABLE;
+      d_ConstBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+      d_ConstBuffer.CPUAccessFlags = 0;
+      d_ConstBuffer.ByteWidth = (sizeof(ColorsBuffer) + 15) / 16 * 16;
+
+      ColorsBuffer d_defaultColorsBuffer{};
+      D3D11_SUBRESOURCE_DATA d_ConstBufferData{&d_defaultColorsBuffer, 0, 0};
+
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, &d_ConstBufferData, &Renderer.m_pColorsBuffer)))
          return hr;
    };
 
