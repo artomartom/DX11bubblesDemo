@@ -4,6 +4,11 @@
 
 #include "Visual/DeviceResource.hpp"
 
+#define CASE(message, action) \
+  case message:               \
+    action;                   \
+    return
+
 using ::Microsoft::WRL::ComPtr;
 
 class CApp : public CoreApp, public CRenderer
@@ -15,6 +20,24 @@ public:
     peekRun(Window::CCoreWindow<CApp>{hinst, {500, 500, 1100, 900}});
     MessageBeep(5);
     return 0;
+  };
+  void OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
+  {
+    // static bool s_IsMinimized{}; // no idea why it throws access violation if i make it a  member
+
+    if (CoreApp::m_IsVisible != args.m_IsMinimized)
+    {
+      CoreApp::m_IsVisible = args.m_IsMinimized;
+      m_ShouldDraw = !CoreApp::m_IsVisible;
+    };
+  };
+
+  void OnKeyStroke(_In_ const ::Window::KeyEventArgs &args) noexcept
+  {
+    switch (args.m_VirtualKey)
+    {
+      CASE(VK_ESCAPE, { CoreApp::Close(); });
+    }
   };
 
   void OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
@@ -30,10 +53,8 @@ public:
 
   void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
   {
-         CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+    CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
   };
-
-   
 
   void Draw() const noexcept
   {
@@ -46,6 +67,7 @@ public:
 
 private:
   std::unique_ptr<CDeviceResource> m_pDeviceResource{};
+  bool m_ShouldDraw{true};
 
   template <class TCoreWindow>
   friend int __stdcall peekRun(const TCoreWindow &window)
@@ -57,8 +79,11 @@ private:
       ::PeekMessageW(&messages, 0, 0, 0, PM_REMOVE);
       ::TranslateMessage(&messages);
       ::DispatchMessageW(&messages);
-      window.UpdateFrameBuffer();
-      window.CApp::Draw();
+      if (window.m_ShouldDraw)
+      {
+        window.UpdateFrameBuffer();
+        window.CApp::Draw();
+      };
     };
     return 0;
   };

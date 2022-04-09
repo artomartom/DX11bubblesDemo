@@ -39,7 +39,7 @@ struct VertexIn
 	//instance
     float2 trans : TRANSLATION;  // 8
     float  size: SIZE;  //  4
-    uint  color: COLOR;  //  12
+    uint  color: COLOR;  //  4
 
 };
 
@@ -58,46 +58,29 @@ VertexOut vmain(VertexIn Input)
     VertexOut VertexOutput;
     VertexOutput.uv =float2(Input.pos.x >0,Input.pos.y <0);
     VertexOutput.color=Input.color;
-
-   
-    float aspect= size.x/size.y   ;
-    Input.pos.x/= aspect;
-    
-    Input.pos*=Input.size;// *(100.f/ (FrameTime.z%5+FrameTime.w) );
+    Input.pos.x/= size.x/size.y ;
+     
+    float  scalar ;
+    float  period= 1800.f;
+    if((FrameTime.y%period*2) > period)
+    scalar =1-(FrameTime.y %period )  /period ;
+    else
+      scalar =(FrameTime.y %period )  /period ;
+      
+    Input.pos*=Input.size  *scalar;
 
     Input.pos +=Input.trans ;
     VertexOutput.pos= float4(    Input.pos ,0.0f,1.0f);
-    
     return VertexOutput;
 };
  
 float4   pmain(VertexOut Input) : SV_Target
 {
-  return   CircleTex.Sample(Sampler,Input.uv ) +float4(colors[Input.color],1.f);
+       return    float4(colors[Input.color],CircleTex.Sample(Sampler,Input.uv ).x ) ;  
+};
+
+ 
+
+
+
   
-};
-
- struct VSOut
-{
-	float3 color : Color;
-	float4 pos : SV_Position;
-};
-
-
-
- /////////////////
-VSOut trianglevmain( float2 pos : Position,float3 color : Color )
-{
-	VSOut vso;
-	vso.pos = float4(pos.x,pos.y,0.0f,1.0f);
-	vso.color = color;
-	return vso;
-}
- 
- 
- 
-float4 trianglepmain( float3 color : Color ) : SV_Target
-{
-	return float4( color,1.0f );
-}
- 

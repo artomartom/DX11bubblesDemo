@@ -14,81 +14,6 @@ HRESULT CreateCircleTexture(
     _Out_ ID3D11Resource **ppTexture,
     _Out_ ID3D11ShaderResourceView **ppTextureView);
 
-void CDeviceResource::DrawTestTriangle(CRenderer &Renderer)
-{
-   HRESULT hr;
-
-   struct Vertex
-   {
-      float x, y, r, g, b;
-   };
-
-   // create vertex buffer (1 2d triangle at center of screen)
-   const Vertex vertices[] =
-       {
-           {0.0f, 0.5f, 1.0f, 0.0f, 0.0f},
-           {0.5f, -0.5f, 0.0f, 1.0f, 0.0f},
-           {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f},
-       };
-   ComPtr<ID3D11Buffer> pVertexBuffer;
-   D3D11_BUFFER_DESC bd = {};
-   bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-   bd.Usage = D3D11_USAGE_DEFAULT;
-   bd.CPUAccessFlags = 0u;
-   bd.MiscFlags = 0u;
-   bd.ByteWidth = sizeof(vertices);
-   bd.StructureByteStride = sizeof(Vertex);
-   D3D11_SUBRESOURCE_DATA sd = {};
-   sd.pSysMem = vertices;
-   H_FAIL(m_pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
-
-   // Bind vertex buffer to pipeline
-   const UINT stride = sizeof(Vertex);
-   const UINT offset = 0u;
-   Renderer.m_pContext->IASetVertexBuffers(0u, 1u, pVertexBuffer.GetAddressOf(), &stride, &offset);
-
-   // create pixel shader
-   ComPtr<ID3D11PixelShader> pPixelShader;
-   ComPtr<ID3DBlob> pBlob;
-   H_FAIL(D3DReadFileToBlob(L"F://Dev//Projects//bubblesDemo//Build//x64//Debug//PixelShader.so", &pBlob));
-   H_FAIL(m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader));
-
-   // bind pixel shader
-   Renderer.m_pContext->PSSetShader(pPixelShader.Get(), nullptr, 0u);
-
-   // create vertex shader
-   ComPtr<ID3D11VertexShader> pVertexShader;
-   H_FAIL(D3DReadFileToBlob(L"F://Dev//Projects//bubblesDemo//Build//x64//Debug//VertexShader.so", &pBlob));
-   H_FAIL(m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader));
-
-   // bind vertex shader
-   Renderer.m_pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
-
-   // input (vertex) layout (2d position only)
-   ComPtr<ID3D11InputLayout> pInputLayout;
-   const D3D11_INPUT_ELEMENT_DESC ied[] =
-       {
-           {"Position", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-           {"Color", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 8u, D3D11_INPUT_PER_VERTEX_DATA, 0},
-       };
-   H_FAIL(m_pDevice->CreateInputLayout(
-       ied, (UINT)std::size(ied),
-       pBlob->GetBufferPointer(),
-       pBlob->GetBufferSize(),
-       &pInputLayout));
-
-   // bind vertex layout
-   Renderer.m_pContext->IASetInputLayout(pInputLayout.Get());
-
-   // bind render target
-   Renderer.m_pContext->OMSetRenderTargets(1u, Renderer.m_pRTV.GetAddressOf(), nullptr);
-
-   // Set primitive topology to triangle list (groups of 3 vertices)
-   Renderer.m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-   (Renderer.m_pContext->Draw((UINT)std::size(vertices), 0u));
-};
-
 CDeviceResource::CDeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ComPtr<ID3D11DeviceContext> &pContext)
 {
 
@@ -127,7 +52,12 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *    Create Vertex Shader
     */
    {
+
+#ifdef _DEBUG
 #include "../Shader/Debug/Vertex.hpp"
+#else
+#include "../Shader/Release/Vertex.hpp"
+#endif
 
       const D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
           {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -154,7 +84,11 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *    Pixel Shader
     */
    {
+#ifdef _DEBUG
 #include "../Shader/Debug/Pixel.hpp"
+#else
+#include "../Shader/Release/Pixel.hpp"
+#endif
       if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
    };
@@ -192,13 +126,9 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *     Create  Instance  Vertex  Buffer
     */
    {
-      Instance Instancies[]{
-          /// POSITION//////SIZE///COLOR
-          {{+0.32f, +0.39f}, {+0.7f}, {0u}},
-          {{-0.45f, -0.2f}, {+0.2f}, {1u}},
-          {{-0.81f, -0.34f}, {+0.1f}, {2u}},
-          {{-0.23f, -0.1f}, {+0.4f}, {3u}},
-      };
+
+      Instance::SeedStdRand(); // essential
+      Instance Instancies[13]{};
 
       Renderer.m_DrawInstanceCount = _countof(Instancies);
 
@@ -261,6 +191,32 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
       D3D11_SUBRESOURCE_DATA d_ConstBufferData{&d_defaultColorsBuffer, 0, 0};
 
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, &d_ConstBufferData, &Renderer.m_pColorsBuffer)))
+         return hr;
+   };
+
+   /**
+    *     Create Constant Buffers
+    */
+   {
+
+      D3D11_BLEND_DESC d_BlendState{};
+      D3D11_RENDER_TARGET_BLEND_DESC d_RTBlend{};
+
+      d_RTBlend.BlendEnable = true;
+
+      d_RTBlend.SrcBlend = D3D11_BLEND::D3D11_BLEND_SRC_ALPHA;
+      d_RTBlend.DestBlend = D3D11_BLEND::D3D11_BLEND_INV_SRC_ALPHA;
+      d_RTBlend.BlendOp = D3D11_BLEND_OP::D3D11_BLEND_OP_ADD;
+
+      d_RTBlend.SrcBlendAlpha = D3D11_BLEND::D3D11_BLEND_ONE;
+      d_RTBlend.DestBlendAlpha = D3D11_BLEND::D3D11_BLEND_ONE;
+      d_RTBlend.BlendOpAlpha = D3D11_BLEND_OP::D3D11_BLEND_OP_SUBTRACT;
+
+      d_RTBlend.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE::D3D11_COLOR_WRITE_ENABLE_ALL;
+
+      d_BlendState.RenderTarget[0] = d_RTBlend;
+
+      if (H_FAIL(hr = m_pDevice->CreateBlendState(&d_BlendState, &Renderer.m_pBlend)))
          return hr;
    };
 
