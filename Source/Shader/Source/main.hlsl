@@ -20,11 +20,10 @@ cbuffer FrameBuffer : register(b1)
 
 cbuffer ColorsBuffer : register(b2)
 {
-     float3 colors[6] ;   
+    float3 colors[6] ;   //6*(3*4)
 };
 
 struct VertexIn
-
 {   
 	/*vertex
     
@@ -35,11 +34,14 @@ struct VertexIn
           {{+1.f, -1.f}}
           {{-1.f, -1.f}}
       */
-    float2 pos : POSITION;  // 8
+    float2 pos: POSITION;  // 8
 	//instance
-    float2 trans : TRANSLATION;  // 8
+    float2 trans: TRANSLATION;  // 8
     float  size: SIZE;  //  4
-    uint  color: COLOR;  //  4
+    float  period: PERIOD;  //  4
+    uint   color: COLOR;  //  4
+    float startTime: STARTTIME;  //  4
+
 
 };
 
@@ -53,30 +55,37 @@ struct VertexOut
 }; 
 
 
-VertexOut vmain(VertexIn Input)
+VertexOut vmain(VertexIn In)
 {
-    VertexOut VertexOutput;
-    VertexOutput.uv =float2(Input.pos.x >0,Input.pos.y <0);
-    VertexOutput.color=Input.color;
-    Input.pos.x/= size.x/size.y ;
+    VertexOut VertexOut;
+    VertexOut.uv =float2(In.pos.x >0,In.pos.y <0);
+    VertexOut.color=In.color;
+    In.pos.x/= size.x/size.y ;
      
-    float  scalar ;
-    float  period= 1800.f;
-    if((FrameTime.y%period*2) > period)
-    scalar =1-(FrameTime.y %period )  /period ;
-    else
-      scalar =(FrameTime.y %period )  /period ;
+    float  scalar= 0;
+     
+    if(FrameTime.y < In.period )  // if the period is not over 
+    {
+     
+        if((FrameTime.y) > In.period/2.f) // if it is second half of period
+        scalar =1- FrameTime.y/In.period ;  //scale the circle down
+        else
+        scalar =FrameTime.y/In.period ;  // scale the circle up
+        
+    }; 
+     
+    
       
-    Input.pos*=Input.size  *scalar;
+    In.pos*=In.size  *scalar;
 
-    Input.pos +=Input.trans ;
-    VertexOutput.pos= float4(    Input.pos ,0.0f,1.0f);
-    return VertexOutput;
+    In.pos +=In.trans ;
+    VertexOut.pos= float4(    In.pos ,0.0f,1.0f);
+    return VertexOut;
 };
  
-float4   pmain(VertexOut Input) : SV_Target
+float4   pmain(VertexOut In) : SV_Target
 {
-       return    float4(colors[Input.color],CircleTex.Sample(Sampler,Input.uv ).x ) ;  
+       return    float4(colors[In.color],CircleTex.Sample(Sampler,In.uv ).x ) ;  
 };
 
  

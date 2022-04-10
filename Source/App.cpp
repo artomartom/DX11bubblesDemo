@@ -23,7 +23,7 @@ public:
   };
   void OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
   {
-    // static bool s_IsMinimized{}; // no idea why it throws access violation if i make it a  member
+   
 
     if (CoreApp::m_IsVisible != args.m_IsMinimized)
     {
@@ -37,6 +37,7 @@ public:
     switch (args.m_VirtualKey)
     {
       CASE(VK_ESCAPE, { CoreApp::Close(); });
+      CASE(VK_SPACE, { m_ShouldDraw=!m_ShouldDraw; });
     }
   };
 

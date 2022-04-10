@@ -64,7 +64,9 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
 
           {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
           {"SIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"PERIOD", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
           {"COLOR", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+          {"STARTTIME", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 
       };
 
@@ -101,7 +103,7 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     */
    {
 
-      Vertex Vertices[]{
+      Vertex Vertices[Renderer.m_DrawVertexCount]{
           {{-1.f, +1.0f}},
           {{+1.f, +1.0f}},
           {{+1.f, -1.0f}},
@@ -109,8 +111,6 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
           {{+1.f, -1.0f}},
           {{-1.f, -1.0f}},
       };
-
-      Renderer.m_DrawVertexCount = _countof(Vertices);
 
       d_VertexBuffer.ByteWidth = sizeof(Vertices);
       d_VertexBuffer.Usage = D3D11_USAGE_IMMUTABLE;
@@ -126,18 +126,13 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *     Create  Instance  Vertex  Buffer
     */
    {
-
-      Instance::SeedStdRand(); // essential
-      Instance Instancies[13]{};
-
-      Renderer.m_DrawInstanceCount = _countof(Instancies);
-
-      d_VertexBuffer.ByteWidth = sizeof(Instancies);
+       
+      d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.m_DrawInstanceCount;
       d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
       d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
       d_VertexBuffer.StructureByteStride = sizeof(Instance);
 
-      d_VertexData.pSysMem = Instancies;
+      d_VertexData.pSysMem =  &Renderer.m_pInstancies[0]  ;
 
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
          return hr;

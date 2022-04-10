@@ -27,16 +27,9 @@ struct ColorsBuffer
     DirectX::XMFLOAT3 LightYellow{1.000000000f, 1.000010000f, 0.878431439f};
     DirectX::XMFLOAT3 Violet{0.933333397f, 0.509803951f, 0.933333397f};
     DirectX::XMFLOAT3 OliveDrab{0.419607878f, 0.556862772f, 0.137254909f};
-    DirectX::XMFLOAT3 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f };
+    DirectX::XMFLOAT3 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f};
     DirectX::XMFLOAT3 PapayaWhip{1.000000000f, 0.937254965f, 0.835294187f};
     DirectX::XMFLOAT3 SaddleBrown{0.545098066f, 0.270588249f, 0.074509807f};
-    //DirectX::XMFLOAT3 Tan{0.823529482f, 0.705882370f, 0.549019635f};
-
-    
-
-
-    
-    
 };
 
 struct Vertex
@@ -45,13 +38,26 @@ struct Vertex
 };
 struct Instance
 {
-    DirectX::XMFLOAT2 TRANSLATION{};
-    float SIZE{};
-    UINT COLOR{};
+    Instance() = default;
+    Instance(float time)
+        : Instance() { STARTTIME = time; };
 
-    static decltype(SIZE) RandPos() { return {((std::rand() % 1000) / 500.f) - 1.f}; };
-    static decltype(TRANSLATION) RandUV() { return {RandPos(), RandPos()}; };
-    static decltype(COLOR) RandColor() { return std::rand() % (sizeof(ColorsBuffer) / sizeof(DirectX::XMFLOAT3)); };
+    DirectX::XMFLOAT2 TRANSLATION{RandUV()};
+    float SIZE{RandPos() * 1.2f};
+    float PERIOD{Period()};
+    UINT COLOR{RandColor()};
+    float STARTTIME{};
+
+    static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
+    static decltype(TRANSLATION) RandUV() noexcept { return {RandPos(), RandPos()}; };
+    static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(DirectX::XMFLOAT3)); };
+    static decltype(PERIOD) Period() noexcept
+    {
+        int step{500};
+        return (std::rand() % step) + (Index++ * step) + 1500.f;
+    };
+
+    inline static UINT Index{};
 
     static void SeedStdRand()
     {
@@ -59,11 +65,6 @@ struct Instance
 
         std::srand(time.wSecond);
     };
-
-    Instance()
-        : TRANSLATION{RandUV()},
-          SIZE{RandPos()},
-          COLOR{RandColor()} {};
 };
 
 class CRenderer
@@ -74,6 +75,7 @@ class CRenderer
     const ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> &GetRenderTargetView() const { return m_pRTV; };
 
 protected:
+    CRenderer() { Instance::SeedStdRand(); };
     void SetPipeLine() const noexcept
     {
         UINT strides[]{sizeof(Vertex), sizeof(Instance)};
@@ -106,10 +108,29 @@ protected:
         static Timer::CTimer Timer{};
 
         FrameBuffer constantBuffer{Timer.Count<long>()};
-
         m_pContext->UpdateSubresource(
             m_pFrameBuffer.Get(),
             0, nullptr, &constantBuffer, 0, 0);
+
+        Log<Console>::Write(Instance::Index);
+
+        if ((m_pInstancies[Instance::Index].STARTTIME + m_pInstancies[Instance::Index].PERIOD) < constantBuffer.Time.y)
+        {
+
+            m_pInstancies[Instance::Index] = Instance{};
+            /**
+             *  default  ctr for Instance increments Index internally, so i should do a out-of-bounds check before
+             *  using  accessor
+             */
+            Instance::Index %= m_DrawInstanceCount;
+            Log<Console>::Write(m_pInstancies[Instance::Index - 1          ].STARTTIME);
+
+            D3D11_BOX box{Instance::Index, 0u, 0u, Instance::Index + sizeof(Instance), 1u, 1u};
+
+            m_pContext->UpdateSubresource(
+                m_pInstanceVertexBuffer.Get(),
+                0, &box, &m_pInstancies[Instance::Index], 0, 0);
+        };
     };
 
     void UpdateViewPortSizeBuffer(float Width, float Height) const noexcept
@@ -141,8 +162,9 @@ protected:
         m_pContext->DrawInstanced(m_DrawVertexCount, m_DrawInstanceCount, 0u, 0u);
     };
 
-    UINT m_DrawVertexCount{};
-    UINT m_DrawInstanceCount{};
+    std::unique_ptr<Instance[]> m_pInstancies{std::make_unique<Instance[]>(m_DrawInstanceCount)};
+    static constexpr UINT m_DrawVertexCount{6};
+    static constexpr UINT m_DrawInstanceCount{30u};
     ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext{};
     ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pRTV{};
     ::Microsoft::WRL::ComPtr<ID3D11BlendState> m_pBlend{};
