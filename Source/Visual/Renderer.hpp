@@ -24,12 +24,12 @@ struct FrameBuffer
 struct ColorsBuffer
 {
     // DirectXColors.h constants
-    DirectX::XMFLOAT3 LightYellow{1.000000000f, 1.000010000f, 0.878431439f};
-    DirectX::XMFLOAT3 Violet{0.933333397f, 0.509803951f, 0.933333397f};
-    DirectX::XMFLOAT3 OliveDrab{0.419607878f, 0.556862772f, 0.137254909f};
-    DirectX::XMFLOAT3 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f};
-    DirectX::XMFLOAT3 PapayaWhip{1.000000000f, 0.937254965f, 0.835294187f};
-    DirectX::XMFLOAT3 SaddleBrown{0.545098066f, 0.270588249f, 0.074509807f};
+    DirectX::XMFLOAT4 LightYellow{1.000000000f, 1.000010000f, 0.878431439f, 1.f};
+    DirectX::XMFLOAT4 Violet{0.933333397f, 0.509803951f, 0.933333397f, 1.f};
+    DirectX::XMFLOAT4 OliveDrab{0.419607878f, 0.556862772f, 0.137254909f, 1.f};
+    DirectX::XMFLOAT4 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f, 1.f};
+    DirectX::XMFLOAT4 PapayaWhip{1.000000000f, 0.937254965f, 0.835294187f, 1.f};
+    DirectX::XMFLOAT4 SaddleBrown{0.545098066f, 0.270588249f, 0.074509807f, 1.f};
 };
 
 struct Vertex
@@ -44,22 +44,22 @@ struct Instance
     explicit Instance(float time)
         : Instance() { STARTTIME = time; };
     DirectX::XMFLOAT2 TRANSLATION{RandUV()};
-    float SIZE{RandPos() * 1.6f};
+    float SIZE{RandSize()};
     float PERIOD{Period()};
     UINT COLOR{RandColor()};
-    float STARTTIME{};
+    float STARTTIME{Instance::Index * 2300.f};
     inline void Reset(const CRenderer &Renderer, float startTime);
 
     static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
+    static decltype(SIZE) RandSize() noexcept { return {((std::rand() % 2000) / 1300.f)}; };
     static decltype(TRANSLATION) RandUV() noexcept { return {RandPos(), RandPos()}; };
-    static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(DirectX::XMFLOAT3)); };
+    static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(ColorsBuffer::LightYellow)); };
     static inline decltype(PERIOD) Period() noexcept;
     inline static UINT Index{};
 
     static void SeedStdRand()
     {
         auto time{Timer::GetLocalTime()};
-
         std::srand(time.wSecond);
     };
 };
@@ -150,7 +150,7 @@ protected:
 
     friend struct Instance;
     static constexpr UINT s_DrawVertexCount{6};
-    static constexpr UINT s_DrawInstanceCount{150u};
+    static constexpr UINT s_DrawInstanceCount{105u};
 
     std::array<Instance, s_DrawInstanceCount> m_Instancies{};
     ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext{};
@@ -174,14 +174,17 @@ protected:
 
 inline decltype(Instance::PERIOD) Instance::Period() noexcept
 {
-    int step{1000};
+    int step{20'000 / CRenderer::s_DrawInstanceCount};
+
     decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 2000.f};
 
     return res;
 };
+
 inline void Instance::Reset(const CRenderer &Renderer, float startTime)
 {
     *this = Instance{startTime};
+
     UINT offset{sizeof(Instance) * Index};
     D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
     Renderer.m_pContext->UpdateSubresource(

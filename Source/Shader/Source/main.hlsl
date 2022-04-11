@@ -8,7 +8,7 @@ SamplerState  Sampler  :SAMPLER  :register(s0);
 
 cbuffer ViewPortBuffer : register(b0)
 {
- float2 size ;   
+    float2 size ;   
 };
 
 cbuffer FrameBuffer : register(b1)
@@ -20,7 +20,7 @@ cbuffer FrameBuffer : register(b1)
 
 cbuffer ColorsBuffer : register(b2)
 {
-    float3 colors[6] ;   //6*(3*4)
+    float4 colors[6] ;   //6*(4*4)
 };
 
 struct VertexIn
@@ -86,7 +86,7 @@ VertexOut vmain(VertexIn In)
  
 float4   pmain(VertexOut In) : SV_Target
 {
-       return    float4(colors[In.color],CircleTex.Sample(Sampler,In.uv ).x ) ;  
+       return    float4( colors[In.color].xyz,CircleTex.Sample(Sampler,In.uv ).x ) ;  
 };
 
  
