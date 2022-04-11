@@ -11,5 +11,6 @@
 #include "d3d11sdklayers.h"
 #include "DirectXMath.h"
 #include <vector>
+#include <array>
 #include <functional>
 #endif

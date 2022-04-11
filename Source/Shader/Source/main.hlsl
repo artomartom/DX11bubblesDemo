@@ -63,20 +63,21 @@ VertexOut vmain(VertexIn In)
     In.pos.x/= size.x/size.y ;
      
     float  scalar= 0;
+    float FromStart=FrameTime.y-In.startTime;
      
-    if(FrameTime.y < In.period )  // if the period is not over 
+    if(FromStart < In.period )  // if the period is not over 
     {
      
-        if((FrameTime.y) > In.period/2.f) // if it is second half of period
-        scalar =1- FrameTime.y/In.period ;  //scale the circle down
+        if(FromStart > In.period/2.f) // if it is second half of period
+        scalar =1- FromStart /In.period ;  //scale the circle down
         else
-        scalar =FrameTime.y/In.period ;  // scale the circle up
+        scalar =FromStart /In.period ;  // scale the circle up
         
     }; 
      
     
       
-    In.pos*=In.size  *scalar;
+    In.pos*=In.size   *scalar;
 
     In.pos +=In.trans ;
     VertexOut.pos= float4(    In.pos ,0.0f,1.0f);

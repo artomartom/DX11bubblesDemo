@@ -103,7 +103,7 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     */
    {
 
-      Vertex Vertices[Renderer.m_DrawVertexCount]{
+      Vertex Vertices[Renderer.s_DrawVertexCount]{
           {{-1.f, +1.0f}},
           {{+1.f, +1.0f}},
           {{+1.f, -1.0f}},
@@ -126,13 +126,13 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *     Create  Instance  Vertex  Buffer
     */
    {
-       
-      d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.m_DrawInstanceCount;
+
+      d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.s_DrawInstanceCount;
       d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
       d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
       d_VertexBuffer.StructureByteStride = sizeof(Instance);
 
-      d_VertexData.pSysMem =  &Renderer.m_pInstancies[0]  ;
+      d_VertexData.pSysMem = &Renderer.m_Instancies[0];
 
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
          return hr;
@@ -190,7 +190,7 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
    };
 
    /**
-    *     Create Constant Buffers
+    *     Create Blend State
     */
    {
 

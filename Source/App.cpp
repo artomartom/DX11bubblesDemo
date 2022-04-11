@@ -71,7 +71,7 @@ private:
   bool m_ShouldDraw{true};
 
   template <class TCoreWindow>
-  friend int __stdcall peekRun(const TCoreWindow &window)
+  friend int __stdcall peekRun(  TCoreWindow &&window)
   {
     ::MSG messages{};
 

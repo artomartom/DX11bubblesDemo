@@ -3,7 +3,7 @@
 #define VISUAL_RENDER_HPP
 
 #include "../pch.hpp"
-
+class CRenderer;
 struct ViewPortSizeBuffer
 {
     DirectX::XMFLOAT2 ViewPortSize{};
@@ -36,27 +36,24 @@ struct Vertex
 {
     DirectX::XMFLOAT2 POSITION{};
 };
+
 struct Instance
 {
-    Instance() = default;
-    Instance(float time)
-        : Instance() { STARTTIME = time; };
 
+    Instance() = default;
+    explicit Instance(float time)
+        : Instance() { STARTTIME = time; };
     DirectX::XMFLOAT2 TRANSLATION{RandUV()};
-    float SIZE{RandPos() * 1.2f};
+    float SIZE{RandPos() * 1.6f};
     float PERIOD{Period()};
     UINT COLOR{RandColor()};
     float STARTTIME{};
+    inline void Reset(const CRenderer &Renderer, float startTime);
 
     static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
     static decltype(TRANSLATION) RandUV() noexcept { return {RandPos(), RandPos()}; };
     static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(DirectX::XMFLOAT3)); };
-    static decltype(PERIOD) Period() noexcept
-    {
-        int step{500};
-        return (std::rand() % step) + (Index++ * step) + 1500.f;
-    };
-
+    static inline decltype(PERIOD) Period() noexcept;
     inline static UINT Index{};
 
     static void SeedStdRand()
@@ -75,7 +72,11 @@ class CRenderer
     const ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> &GetRenderTargetView() const { return m_pRTV; };
 
 protected:
-    CRenderer() { Instance::SeedStdRand(); };
+    CRenderer()
+    {
+        Instance::SeedStdRand();
+        Instance::Index = 0;
+    };
     void SetPipeLine() const noexcept
     {
         UINT strides[]{sizeof(Vertex), sizeof(Instance)};
@@ -103,7 +104,7 @@ protected:
         m_pContext->OMSetRenderTargets(1u, m_pRTV.GetAddressOf(), nullptr);
     };
 
-    void UpdateFrameBuffer() const noexcept
+    void UpdateFrameBuffer() noexcept
     {
         static Timer::CTimer Timer{};
 
@@ -112,24 +113,9 @@ protected:
             m_pFrameBuffer.Get(),
             0, nullptr, &constantBuffer, 0, 0);
 
-        Log<Console>::Write(Instance::Index);
-
-        if ((m_pInstancies[Instance::Index].STARTTIME + m_pInstancies[Instance::Index].PERIOD) < constantBuffer.Time.y)
+        if ((m_Instancies[Instance::Index].STARTTIME + m_Instancies[Instance::Index].PERIOD) < constantBuffer.Time.y)
         {
-
-            m_pInstancies[Instance::Index] = Instance{};
-            /**
-             *  default  ctr for Instance increments Index internally, so i should do a out-of-bounds check before
-             *  using  accessor
-             */
-            Instance::Index %= m_DrawInstanceCount;
-            Log<Console>::Write(m_pInstancies[Instance::Index - 1          ].STARTTIME);
-
-            D3D11_BOX box{Instance::Index, 0u, 0u, Instance::Index + sizeof(Instance), 1u, 1u};
-
-            m_pContext->UpdateSubresource(
-                m_pInstanceVertexBuffer.Get(),
-                0, &box, &m_pInstancies[Instance::Index], 0, 0);
+            m_Instancies[Instance::Index].Reset(*this, constantBuffer.Time.y);
         };
     };
 
@@ -159,12 +145,14 @@ protected:
     {
         static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
         m_pContext->ClearRenderTargetView(CRenderer::m_pRTV.Get(), RTVClearColor);
-        m_pContext->DrawInstanced(m_DrawVertexCount, m_DrawInstanceCount, 0u, 0u);
+        m_pContext->DrawInstanced(s_DrawVertexCount, s_DrawInstanceCount, 0u, 0u);
     };
 
-    std::unique_ptr<Instance[]> m_pInstancies{std::make_unique<Instance[]>(m_DrawInstanceCount)};
-    static constexpr UINT m_DrawVertexCount{6};
-    static constexpr UINT m_DrawInstanceCount{30u};
+    friend struct Instance;
+    static constexpr UINT s_DrawVertexCount{6};
+    static constexpr UINT s_DrawInstanceCount{150u};
+
+    std::array<Instance, s_DrawInstanceCount> m_Instancies{};
     ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext{};
     ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pRTV{};
     ::Microsoft::WRL::ComPtr<ID3D11BlendState> m_pBlend{};
@@ -184,4 +172,23 @@ protected:
     ::Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSampler{};
 };
 
+inline decltype(Instance::PERIOD) Instance::Period() noexcept
+{
+    int step{1000};
+    decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 2000.f};
+
+    return res;
+};
+inline void Instance::Reset(const CRenderer &Renderer, float startTime)
+{
+    *this = Instance{startTime};
+    UINT offset{sizeof(Instance) * Index};
+    D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
+    Renderer.m_pContext->UpdateSubresource(
+        Renderer.m_pInstanceVertexBuffer.Get(),
+        0, &box, &Renderer.m_Instancies[Index], 0, 0);
+
+    Index++;
+    Index %= CRenderer::s_DrawInstanceCount;
+};
 #endif
