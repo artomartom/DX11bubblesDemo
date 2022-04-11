@@ -23,7 +23,6 @@ public:
   };
   void OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
   {
-   
 
     if (CoreApp::m_IsVisible != args.m_IsMinimized)
     {
@@ -37,7 +36,7 @@ public:
     switch (args.m_VirtualKey)
     {
       CASE(VK_ESCAPE, { CoreApp::Close(); });
-      CASE(VK_SPACE, { m_ShouldDraw=!m_ShouldDraw; });
+      CASE(VK_SPACE, { m_ShouldDraw = !m_ShouldDraw; });
     }
   };
 
@@ -71,9 +70,11 @@ private:
   bool m_ShouldDraw{true};
 
   template <class TCoreWindow>
-  friend int __stdcall peekRun(  TCoreWindow &&window)
+  friend int __stdcall peekRun(TCoreWindow &&window)
   {
     ::MSG messages{};
+    Timer::CTimer Timer{};
+    char updateCount[20]{};
 
     while (messages.message != WM_QUIT)
     {
@@ -82,8 +83,10 @@ private:
       ::DispatchMessageW(&messages);
       if (window.m_ShouldDraw)
       {
-        window.UpdateFrameBuffer();
+        window.UpdateFrameBuffer(Timer.Count<long>());
         window.CApp::Draw();
+        ::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f / Timer.GetDelta<float>());
+        window.SetHeader(updateCount);
       };
     };
     return 0;

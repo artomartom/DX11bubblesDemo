@@ -47,7 +47,7 @@ struct Instance
     float SIZE{RandSize()};
     float PERIOD{Period()};
     UINT COLOR{RandColor()};
-    float STARTTIME{Instance::Index * 2300.f};
+    float STARTTIME{Instance::Period()};
     inline void Reset(const CRenderer &Renderer, float startTime);
 
     static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
@@ -104,11 +104,13 @@ protected:
         m_pContext->OMSetRenderTargets(1u, m_pRTV.GetAddressOf(), nullptr);
     };
 
-    void UpdateFrameBuffer() noexcept
+    void UpdateFrameBuffer(long time) noexcept
     {
-        static Timer::CTimer Timer{};
+       
+        FrameBuffer constantBuffer{time};
+       
 
-        FrameBuffer constantBuffer{Timer.Count<long>()};
+
         m_pContext->UpdateSubresource(
             m_pFrameBuffer.Get(),
             0, nullptr, &constantBuffer, 0, 0);
@@ -174,9 +176,9 @@ protected:
 
 inline decltype(Instance::PERIOD) Instance::Period() noexcept
 {
-    int step{20'000 / CRenderer::s_DrawInstanceCount};
+    int step{40'000 / CRenderer::s_DrawInstanceCount};
 
-    decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 2000.f};
+    decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 3500.f};
 
     return res;
 };
@@ -191,7 +193,6 @@ inline void Instance::Reset(const CRenderer &Renderer, float startTime)
         Renderer.m_pInstanceVertexBuffer.Get(),
         0, &box, &Renderer.m_Instancies[Index], 0, 0);
 
-    Index++;
-    Index %= CRenderer::s_DrawInstanceCount;
+    Index = (Index + 1) % CRenderer::s_DrawInstanceCount;
 };
 #endif

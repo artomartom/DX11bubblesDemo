@@ -1,10 +1,7 @@
- #include "Func.hlsl"
- 
+#include "Func.hlsl"
 
 Texture2D    CircleTex   :TEXTURE    :register(t0);
 SamplerState  Sampler  :SAMPLER  :register(s0);
-
-
 
 cbuffer ViewPortBuffer : register(b0)
 {
@@ -26,7 +23,6 @@ cbuffer ColorsBuffer : register(b2)
 struct VertexIn
 {   
 	/*vertex
-    
           {{-1.f, +1.f}}
           {{+1.f, +1.f}}
           {{+1.f, -1.f}}
@@ -41,8 +37,6 @@ struct VertexIn
     float  period: PERIOD;  //  4
     uint   color: COLOR;  //  4
     float startTime: STARTTIME;  //  4
-
-
 };
 
  
@@ -72,13 +66,9 @@ VertexOut vmain(VertexIn In)
         scalar =1- FromStart /In.period ;  //scale the circle down
         else
         scalar =FromStart /In.period ;  // scale the circle up
-        
     }; 
-     
-    
-      
+        
     In.pos*=In.size   *scalar;
-
     In.pos +=In.trans ;
     VertexOut.pos= float4(    In.pos ,0.0f,1.0f);
     return VertexOut;
