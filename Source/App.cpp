@@ -11,8 +11,6 @@
 
 using ::Microsoft::WRL::ComPtr;
 
-  
-
 class CApp : public CoreApp, public CRenderer
 {
 
