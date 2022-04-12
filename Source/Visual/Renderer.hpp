@@ -104,12 +104,11 @@ protected:
         m_pContext->OMSetRenderTargets(1u, m_pRTV.GetAddressOf(), nullptr);
     };
 
-    void UpdateFrameBuffer(long time) noexcept
+    void UpdateFrameBuffer() noexcept
     {
-       
-        FrameBuffer constantBuffer{time};
-       
-
+        
+      
+       FrameBuffer constantBuffer{ Timer.Count<long>()};
 
         m_pContext->UpdateSubresource(
             m_pFrameBuffer.Get(),
@@ -153,6 +152,8 @@ protected:
     friend struct Instance;
     static constexpr UINT s_DrawVertexCount{6};
     static constexpr UINT s_DrawInstanceCount{105u};
+
+    Timer::CTimer Timer{};
 
     std::array<Instance, s_DrawInstanceCount> m_Instancies{};
     ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext{};

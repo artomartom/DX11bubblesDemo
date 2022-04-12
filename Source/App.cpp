@@ -36,7 +36,7 @@ public:
     switch (args.m_VirtualKey)
     {
       CASE(VK_ESCAPE, { CoreApp::Close(); });
-      CASE(VK_SPACE, { m_ShouldDraw = !m_ShouldDraw; });
+      CASE(VK_SPACE, { CRenderer::Timer.Switch(); });
     }
   };
 
@@ -73,8 +73,8 @@ private:
   friend int __stdcall peekRun(TCoreWindow &&window)
   {
     ::MSG messages{};
-    Timer::CTimer Timer{};
-    char updateCount[20]{};
+
+    //   char updateCount[20]{ };
 
     while (messages.message != WM_QUIT)
     {
@@ -83,10 +83,10 @@ private:
       ::DispatchMessageW(&messages);
       if (window.m_ShouldDraw)
       {
-        window.UpdateFrameBuffer(Timer.Count<long>());
+        window.UpdateFrameBuffer();
         window.CApp::Draw();
-        ::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f / Timer.GetDelta<float>());
-        window.SetHeader(updateCount);
+        //::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f/CRenderer::Timer.GetDelta<float>());
+        // window.SetHeader(updateCount);
       };
     };
     return 0;
