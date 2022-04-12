@@ -24,12 +24,12 @@ struct FrameBuffer
 struct ColorsBuffer
 {
     // DirectXColors.h constants
-    DirectX::XMFLOAT4 LightYellow{1.000000000f, 1.000010000f, 0.878431439f, 1.f};
-    DirectX::XMFLOAT4 Violet{0.933333397f, 0.509803951f, 0.933333397f, 1.f};
-    DirectX::XMFLOAT4 OliveDrab{0.419607878f, 0.556862772f, 0.137254909f, 1.f};
-    DirectX::XMFLOAT4 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f, 1.f};
-    DirectX::XMFLOAT4 PapayaWhip{1.000000000f, 0.937254965f, 0.835294187f, 1.f};
-    DirectX::XMFLOAT4 SaddleBrown{0.545098066f, 0.270588249f, 0.074509807f, 1.f};
+    DirectX::XMFLOAT4 LightYellow{0x28 / 256.f, 0x31 / 256.f, 0xF2 / 256.f, 1.f};
+    DirectX::XMFLOAT4 Violet{0x79 / 256.f, 0xF5 / 256.f, 0x04 / 256.f, 1.f};
+    DirectX::XMFLOAT4 OliveDrab{0x83 / 256.f, 0x1E / 256.f, 0x01 / 256.f, 1.f};
+    DirectX::XMFLOAT4 DarkSalmon{0x77 / 256.f, 0xCE / 256.f, 0xFB / 256.f, 1.f};
+    DirectX::XMFLOAT4 PapayaWhip{0x42 / 256.f, 0x42 / 256.f, 0x55 / 256.f, 1.f};
+    DirectX::XMFLOAT4 SaddleBrown{0x83 / 256.f, 0x20 / 256.f, 0x03 / 256.f, 1.f};
 };
 
 struct Vertex
@@ -43,24 +43,26 @@ struct Instance
     Instance() = default;
     explicit Instance(float time)
         : Instance() { STARTTIME = time; };
+
     DirectX::XMFLOAT2 TRANSLATION{RandUV()};
     float SIZE{RandSize()};
     float PERIOD{Period()};
     UINT COLOR{RandColor()};
-    float STARTTIME{Instance::Period()};
+    float STARTTIME{static_cast<float>(std::rand() % 20'000)};
     inline void Reset(const CRenderer &Renderer, float startTime);
 
     static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
-    static decltype(SIZE) RandSize() noexcept { return {((std::rand() % 2000) / 1300.f)}; };
+    static decltype(SIZE) RandSize() noexcept;
     static decltype(TRANSLATION) RandUV() noexcept { return {RandPos(), RandPos()}; };
     static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(ColorsBuffer::LightYellow)); };
     static inline decltype(PERIOD) Period() noexcept;
     inline static UINT Index{};
 
-    static void SeedStdRand()
+    static int SeedStdRand()
     {
         auto time{Timer::GetLocalTime()};
         std::srand(time.wSecond);
+        return 0;
     };
 };
 
@@ -74,7 +76,6 @@ class CRenderer
 protected:
     CRenderer()
     {
-        Instance::SeedStdRand();
         Instance::Index = 0;
     };
     void SetPipeLine() const noexcept
@@ -106,9 +107,8 @@ protected:
 
     void UpdateFrameBuffer() noexcept
     {
-        
-      
-       FrameBuffer constantBuffer{ Timer.Count<long>()};
+
+        FrameBuffer constantBuffer{Timer.Count<long>()};
 
         m_pContext->UpdateSubresource(
             m_pFrameBuffer.Get(),
@@ -154,7 +154,7 @@ protected:
     static constexpr UINT s_DrawInstanceCount{105u};
 
     Timer::CTimer Timer{};
-
+    int lole{Instance::SeedStdRand()};
     std::array<Instance, s_DrawInstanceCount> m_Instancies{};
     ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext{};
     ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pRTV{};
@@ -177,11 +177,16 @@ protected:
 
 inline decltype(Instance::PERIOD) Instance::Period() noexcept
 {
-    int step{40'000 / CRenderer::s_DrawInstanceCount};
+    int step{30'000 / CRenderer::s_DrawInstanceCount};
 
     decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 3500.f};
 
     return res;
+};
+
+inline decltype(Instance::SIZE) Instance::RandSize() noexcept
+{
+    return {((std::rand() % 600 * (Index/CRenderer::s_DrawInstanceCount  ) + 400) / 1300.f)};
 };
 
 inline void Instance::Reset(const CRenderer &Renderer, float startTime)
