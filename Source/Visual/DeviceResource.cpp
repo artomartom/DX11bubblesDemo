@@ -126,11 +126,12 @@ HRESULT CDeviceResource::CreateDeviceResources(_Out_ CRenderer &Renderer)
     *     Create  Instance  Vertex  Buffer
     */
    {
-
+          
       d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.s_DrawInstanceCount;
-      d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
+      d_VertexBuffer.Usage = D3D11_USAGE_DYNAMIC;
       d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-      d_VertexBuffer.StructureByteStride = sizeof(Instance);
+      d_VertexBuffer.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+      d_VertexBuffer.StructureByteStride = sizeof(Instance);  // ??
 
       d_VertexData.pSysMem = &Renderer.m_Instancies[0];
 

@@ -187,11 +187,18 @@ inline void Instance::Reset(const CRenderer &Renderer, float startTime)
 {
     *this = Instance{startTime};
 
+    D3D11_MAPPED_SUBRESOURCE mappedResource{};
+
     UINT offset{sizeof(Instance) * Index};
-    D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
-    Renderer.m_pContext->UpdateSubresource(
-        Renderer.m_pInstanceVertexBuffer.Get(),
-        0, &box, &Renderer.m_Instancies[Index], 0, 0);
+    //  D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
+    //  Renderer.m_pContext->UpdateSubresource(
+    //      Renderer.m_pInstanceVertexBuffer.Get(),
+    //      0, &box, &Renderer.m_Instancies[Index], 0, 0);
+    H_CHECK(Renderer.m_pContext->Map(Renderer.m_pInstanceVertexBuffer.Get(), 0, D3D11_MAP_WRITE, 0, &mappedResource), L"");
+    Instance *SubResource{reinterpret_cast<Instance *>(mappedResource.pData)};
+    SubResource[Index] = *this;
+    //::memcpy(mappedResource.pData, &Renderer.m_Instancies[Index], sizeof(Instance));
+    Renderer.m_pContext->Unmap(Renderer.m_pInstanceVertexBuffer.Get(), 0);
 
     Index = (Index + 1) % CRenderer::s_DrawInstanceCount;
 };
