@@ -59,7 +59,6 @@ public:
   void Draw() const noexcept
   {
     CRenderer::Draw();
-
     H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
   };
 
@@ -73,9 +72,7 @@ private:
   friend int __stdcall peekRun(TCoreWindow &&window)
   {
     ::MSG messages{};
-
     //   char updateCount[20]{ };
-
     while (messages.message != WM_QUIT)
     {
       ::PeekMessageW(&messages, 0, 0, 0, PM_REMOVE);

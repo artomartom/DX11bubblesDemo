@@ -106,9 +106,8 @@ protected:
 
     void UpdateFrameBuffer() noexcept
     {
-        
-      
-       FrameBuffer constantBuffer{ Timer.Count<long>()};
+
+        FrameBuffer constantBuffer{Timer.Count<long>()};
 
         m_pContext->UpdateSubresource(
             m_pFrameBuffer.Get(),
