@@ -287,11 +287,11 @@ HRESULT DeviceResource::GenerateCircleTexture(
    for (UINT index{}; index != BufferSize; index++)
    {
       auto Pos{GetPos(index)};
-
-      if (std::sqrtf(Pos.x * Pos.x + Pos.y * Pos.y) > 1.f)
+      auto distance{std::sqrtf(Pos.x * Pos.x + Pos.y * Pos.y)};
+      if (distance > 1.f)
          Buffer[index] = static_cast<BYTE>(0x00);
       else
-         Buffer[index] = static_cast<BYTE>(0xFF);
+         Buffer[index] = static_cast<BYTE>(/*0xFF -*/ 150 * distance);
    };
 
    // Create texture
@@ -318,9 +318,11 @@ HRESULT DeviceResource::GenerateCircleTexture(
       {
          D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
          SRVDesc.Format = CircleFormat;
-         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-         // SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
-         SRVDesc.Texture2DMS.UnusedField_NothingToDefine = 1;
+         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+         SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
+
+         // SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+         // SRVDesc.Texture2DMS.UnusedField_NothingToDefine = 1;
          if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, ppTextureView)))
             return hr;
 

@@ -143,7 +143,8 @@ protected:
 
     void Draw() const noexcept
     {
-        static const float RTVClearColor[4]{0.f, 0.67f, 0.99f, 0.99f};
+        //static const float RTVClearColor[4]{0.f, 0.67f, 0.99f, 0.99f};
+        static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
         m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), RTVClearColor);
         m_pContext->DrawInstanced(s_DrawVertexCount, s_DrawInstanceCount, 0u, 0u);
     };
