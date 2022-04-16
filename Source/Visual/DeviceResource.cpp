@@ -6,13 +6,7 @@
 using ::Microsoft::WRL::ComPtr;
 using namespace ::DirectX;
 
-HRESULT GenerateCircleTexture(
-    _In_ const ComPtr<ID3D11Device> &d3dDevice,
-    _In_ const ComPtr<ID3D11DeviceContext> &Context,
-    _Out_ ID3D11Resource **ppTexture,
-    _Out_ ID3D11ShaderResourceView **ppTextureView
-
-);
+static constexpr DXGI_FORMAT CircleFormat{DXGI_FORMAT_R8_UNORM};
 
 HRESULT DeviceResource::TestDeviceSupport()
 {
@@ -30,15 +24,18 @@ HRESULT DeviceResource::TestDeviceSupport()
    //... check feature level
    // TODO
 
-   UINT NumQualityLevels{};
+   s_SampleCount = 4;
    //... and multi-sampling support
    H_CHECK(hr = tmp_pDevice->CheckMultisampleQualityLevels(
-               (DXGI_FORMAT)CircleTexFormat, // Circle Texture format used when decoding and loading texture  from resource
-               Settings::SampleCount,        // sample count
-               &NumQualityLevels),
+               CircleFormat,  // Circle Texture format used
+               s_SampleCount, // sample count
+               &s_QualityLevel),
            L"CheckMultisampleQualityLevels");
+   s_QualityLevel--;
+   // Log<File>::Write(L"Sample_Count/Quality_level ",s_SampleCount, s_QualityLevel);
+   s_QualityLevel = 2;
 
-   if (hr < 0 || NumQualityLevels == 0)
+   if (hr < 0 || s_QualityLevel == 0)
    {
       hr = ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
       Error<File>::Write(L"Multi-sampling: ERROR_DEVICE_FEATURE_NOT_SUPPORTED");
@@ -60,14 +57,14 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
    DXGI_SWAP_CHAIN_DESC d_SwapChain{
        static_cast<UINT>(TargetSize.cx), static_cast<UINT>(TargetSize.cy),
        60, 1, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
-       DXGI_MODE_SCALING_UNSPECIFIED, 1, 0, DXGI_USAGE_RENDER_TARGET_OUTPUT,
+       DXGI_MODE_SCALING_UNSPECIFIED, s_SampleCount, s_QualityLevel, DXGI_USAGE_RENDER_TARGET_OUTPUT,
        1, hwnd, true, DXGI_SWAP_EFFECT_DISCARD, 0};
-
-   //   d_SwapChain.SampleDesc = DXGI_SAMPLE_DESC{4, 0};
 
    H_CHECK(*hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0,
                                                D3D11_SDK_VERSION, &d_SwapChain, &m_pSwapChain, &m_pDevice, &m_thisFeatureLevel, &pContext),
            L"D3D11CreateDeviceAndSwapChain failed");
+
+   DBG_ONLY(DebugInterface::Init(m_pDevice));
 };
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
@@ -84,7 +81,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
    if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(backBuffer.Get(), 0, &Renderer.m_pRTV)))
       return hr;
 
-   if (H_FAIL(hr = GenerateCircleTexture(m_pDevice.Get(), Renderer.m_pContext.Get(), nullptr, &Renderer.m_pCircleTexView)))
+   if (H_FAIL(hr = GenerateCircleTexture(Renderer.m_pContext.Get(), nullptr, &Renderer.m_pCircleTexView)))
       return hr;
 
    /**
@@ -264,8 +261,7 @@ struct Vector2
    T x, y;
 };
 
-HRESULT GenerateCircleTexture(
-    _In_ const ComPtr<ID3D11Device> &d3dDevice,
+HRESULT DeviceResource::GenerateCircleTexture(
     _In_ const ComPtr<ID3D11DeviceContext> &Context,
     _Out_ ID3D11Resource **ppTexture,
     _Out_ ID3D11ShaderResourceView **ppTextureView)
@@ -273,9 +269,7 @@ HRESULT GenerateCircleTexture(
    HRESULT hr{};
    bool autogen{false};
 
-   Vector2<UINT> imageSize{800, 800};
-
-   DXGI_FORMAT DXFormat{DXGI_FORMAT_R8_UNORM};
+   Vector2<UINT> imageSize{1000, 1000};
 
    UINT bpp{8};
 
@@ -306,21 +300,16 @@ HRESULT GenerateCircleTexture(
    desc.Height = imageSize.y;
    desc.MipLevels = (autogen) ? 0 : 1;
    desc.ArraySize = 1;
-   desc.Format = DXFormat;
-   desc.SampleDesc.Count = 1;
-   desc.SampleDesc.Quality = 0;
+   desc.Format = CircleFormat;
+   desc.SampleDesc.Count = 1;   // s_SampleCount;
+   desc.SampleDesc.Quality = 0; // s_QualityLevel;
    desc.Usage = D3D11_USAGE_DEFAULT;
    desc.BindFlags = (autogen) ? (D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET) : (D3D11_BIND_SHADER_RESOURCE);
    desc.CPUAccessFlags = 0;
    desc.MiscFlags = (autogen) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
 
-   D3D11_SUBRESOURCE_DATA initData;
-   initData.pSysMem = Buffer.get();
-   initData.SysMemPitch = static_cast<UINT>(Stride);
-   initData.SysMemSlicePitch = static_cast<UINT>(BufferSize);
-
    ComPtr<ID3D11Texture2D> tex{};
-   if (H_FAIL(hr = d3dDevice->CreateTexture2D(&desc, (autogen) ? nullptr : &initData, &tex)))
+   if (H_FAIL(hr = m_pDevice->CreateTexture2D(&desc, nullptr, &tex)))
       return hr;
 
    if (tex.Get() != nullptr)
@@ -328,17 +317,18 @@ HRESULT GenerateCircleTexture(
       if (ppTextureView != nullptr)
       {
          D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-         SRVDesc.Format = DXFormat;
-         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-         SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
-
-         if (H_FAIL(hr = d3dDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, ppTextureView)))
+         SRVDesc.Format = CircleFormat;
+         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+         // SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
+         SRVDesc.Texture2DMS.UnusedField_NothingToDefine = 1;
+         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, ppTextureView)))
             return hr;
+
+         Context->UpdateSubresource(tex.Get(), 0, nullptr, Buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(BufferSize));
 
          if (autogen)
          {
 
-            Context->UpdateSubresource(tex.Get(), 0, nullptr, Buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(BufferSize));
             Context->GenerateMips(*ppTextureView);
          }
       }

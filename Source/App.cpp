@@ -17,7 +17,7 @@ class App : public CoreApp, public Renderer
 public:
   static int AppEntry(HINSTANCE hinst)
   {
-    peekRun(Window::CCoreWindow<App>{hinst, {500, 500, 1100, 900}});
+    peekRun(Window::CCoreWindow<App>{hinst, {10, 10, 1700, 1000}});
     MessageBeep(5);
     return 0;
   };
@@ -44,13 +44,16 @@ public:
 
   ::HRESULT OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
   {
+    HRESULT hr{};
+
+    if (H_FAIL(hr = DeviceResource::TestDeviceSupport()))
+      return hr;
 
     SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-    HRESULT hr{};
     m_pDeviceResource = std::make_unique<DeviceResource>(m_Handle, RTSize, Renderer::m_pContext, &hr);
     if (H_FAIL(hr))
       return hr;
-    if (H_FAIL(m_pDeviceResource->CreateDeviceResources(*this)))
+    if (H_FAIL(hr = m_pDeviceResource->CreateDeviceResources(*this)))
       return hr;
     Renderer::SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
     Renderer::UpdateViewPortSizeBuffer(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
@@ -68,9 +71,15 @@ public:
   {
     Renderer::Draw();
     H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
+
+    DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
   };
 
-  ::HRESULT OnClose() noexcept { m_pDeviceResource.release(); return S_OK;};
+  ::HRESULT OnClose() noexcept
+  {
+    m_pDeviceResource.release();
+    return S_OK;
+  };
 
 private:
   std::unique_ptr<DeviceResource> m_pDeviceResource{};
@@ -80,7 +89,6 @@ private:
   friend int __stdcall peekRun(TCoreWindow &&window)
   {
 
-    // TestDeviceSupport();
     ::MSG messages{};
     //   char updateCount[20]{ };
     while (messages.message != WM_QUIT)
@@ -94,6 +102,7 @@ private:
         window.App::Draw();
         //::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f/Renderer::Timer.GetDelta<float>());
         // window.SetHeader(updateCount);
+        
       };
     };
     return 0;
