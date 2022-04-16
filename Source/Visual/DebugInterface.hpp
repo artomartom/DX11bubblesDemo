@@ -6,29 +6,29 @@
 // d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
 //  SetDebugObjectName( pObject, "texture.jpg" );
 
-class CDebugInterface
+class DebugInterface
 {
 public:
 #if defined(_DEBUG) || defined(PROFILE)
-    CDebugInterface()
+    DebugInterface()
         : m_hDxgiDebugDLL{::LoadLibraryExW(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32)} {};
     HRESULT Init(const ::Microsoft::WRL::ComPtr<ID3D11Device> &pDevice) // Device is initialized at this point
     {
         HRESULT hr{};
         // function pointer typedef of to retrieve debugging interface from dll
-        typedef HRESULT(__stdcall * DXGIGetCDebugInterface)(REFIID, void **);
+        typedef HRESULT(__stdcall * DXGIGetDebugInterface)(REFIID, void **);
 
         if (!m_hDxgiDebugDLL)
             return H_ERR(::GetLastError(), L"While Loading dxgidebug.dll");
 
         // populate function pointers
-        W32(const auto pDXGIGetCDebugInterface = reinterpret_cast<DXGIGetCDebugInterface>(
+        W32(const auto pDXGIGetDebugInterface = reinterpret_cast<DXGIGetDebugInterface>(
                 reinterpret_cast<void *>(::GetProcAddress(m_hDxgiDebugDLL, "DXGIGetDebugInterface"))));
 
-        if (H_FAIL(hr = pDXGIGetCDebugInterface(__uuidof(IDXGIDebug), &m_pDebug)))
+        if (H_FAIL(hr = pDXGIGetDebugInterface(__uuidof(IDXGIDebug), &m_pDebug)))
             return hr;
 
-        if (H_FAIL(hr = pDXGIGetCDebugInterface(__uuidof(IDXGIInfoQueue), &m_pInfoQueue)))
+        if (H_FAIL(hr = pDXGIGetDebugInterface(__uuidof(IDXGIInfoQueue), &m_pInfoQueue)))
             return hr;
 
         if (H_FAIL(hr = pDevice->QueryInterface(__uuidof(ID3D11Debug), &m_pSDKLayerDebug)))
@@ -97,7 +97,7 @@ public:
         m_pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
     };
 
-    virtual ~CDebugInterface()
+    virtual ~DebugInterface()
     {
 
         if (m_pInfoQueue != nullptr)

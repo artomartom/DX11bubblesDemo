@@ -1,4 +1,0 @@
-
-#include "App.rc.hpp"
-
-IDR_CIRCLE_IMAGE IMAGE "gimp_circle.png"

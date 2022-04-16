@@ -7,21 +7,21 @@
 #define CASE(message, action) \
   case message:               \
     action;                   \
-    return
+    return S_OK
 
 using ::Microsoft::WRL::ComPtr;
 
-class CApp : public CoreApp, public CRenderer
+class App : public CoreApp, public Renderer
 {
 
 public:
-  static int App(HINSTANCE hinst)
+  static int AppEntry(HINSTANCE hinst)
   {
-    peekRun(Window::CCoreWindow<CApp>{hinst, {500, 500, 1100, 900}});
+    peekRun(Window::CCoreWindow<App>{hinst, {500, 500, 1100, 900}});
     MessageBeep(5);
     return 0;
   };
-  void OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
+  ::HRESULT OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
   {
 
     if (CoreApp::m_IsVisible != args.m_IsMinimized)
@@ -29,48 +29,58 @@ public:
       CoreApp::m_IsVisible = args.m_IsMinimized;
       m_ShouldDraw = !CoreApp::m_IsVisible;
     };
+    return S_OK;
   };
 
-  void OnKeyStroke(_In_ const ::Window::KeyEventArgs &args) noexcept
+  ::HRESULT OnKeyStroke(_In_ const ::Window::KeyEventArgs &args) noexcept
   {
     switch (args.m_VirtualKey)
     {
       CASE(VK_ESCAPE, { CoreApp::Close(); });
-      CASE(VK_SPACE, { CRenderer::Timer.Switch(); });
+      CASE(VK_SPACE, { Renderer::Timer.Switch(); });
     }
+    return S_OK;
   };
 
-  void OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
+  ::HRESULT OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
   {
 
     SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-    m_pDeviceResource = std::make_unique<CDeviceResource>(m_Handle, RTSize, CRenderer::m_pContext);
-    H_FAIL(m_pDeviceResource->CreateDeviceResources(*this));
-    CRenderer::SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
-    CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
-    CRenderer::SetPipeLine();
+    HRESULT hr{};
+    m_pDeviceResource = std::make_unique<DeviceResource>(m_Handle, RTSize, Renderer::m_pContext, &hr);
+    if (H_FAIL(hr))
+      return hr;
+    if (H_FAIL(m_pDeviceResource->CreateDeviceResources(*this)))
+      return hr;
+    Renderer::SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
+    Renderer::UpdateViewPortSizeBuffer(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
+    Renderer::SetPipeLine();
+    return S_OK;
   };
 
-  void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
+  ::HRESULT OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
   {
-    CRenderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+    Renderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+    return S_OK;
   };
 
   void Draw() const noexcept
   {
-    CRenderer::Draw();
+    Renderer::Draw();
     H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
   };
 
-  void OnClose() noexcept { m_pDeviceResource.release(); };
+  ::HRESULT OnClose() noexcept { m_pDeviceResource.release(); return S_OK;};
 
 private:
-  std::unique_ptr<CDeviceResource> m_pDeviceResource{};
+  std::unique_ptr<DeviceResource> m_pDeviceResource{};
   bool m_ShouldDraw{true};
 
   template <class TCoreWindow>
   friend int __stdcall peekRun(TCoreWindow &&window)
   {
+
+    // TestDeviceSupport();
     ::MSG messages{};
     //   char updateCount[20]{ };
     while (messages.message != WM_QUIT)
@@ -81,8 +91,8 @@ private:
       if (window.m_ShouldDraw)
       {
         window.UpdateFrameBuffer();
-        window.CApp::Draw();
-        //::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f/CRenderer::Timer.GetDelta<float>());
+        window.App::Draw();
+        //::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f/Renderer::Timer.GetDelta<float>());
         // window.SetHeader(updateCount);
       };
     };
@@ -91,5 +101,5 @@ private:
 };
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-int wWinMain(HINSTANCE hinst, HINSTANCE, LPWSTR, int) { return Invoke(&CApp::App, hinst); };
-int main() { return Invoke(&CApp::App, (HINSTANCE)&__ImageBase); };
+int wWinMain(HINSTANCE hinst, HINSTANCE, LPWSTR, int) { return Invoke(&App::AppEntry, hinst); };
+int main() { return Invoke(&App::AppEntry, (HINSTANCE)&__ImageBase); };

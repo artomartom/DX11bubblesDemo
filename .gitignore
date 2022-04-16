@@ -1,4 +1,6 @@
 Build/ 
+Source/Shader/Release/
+Source/Shader/Debug/
 Log.txt
 .vscode/ 
  

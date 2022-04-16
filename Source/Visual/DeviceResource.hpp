@@ -6,13 +6,13 @@
 
 #include "DebugInterface.hpp"
 
-class CDeviceResource : public CDebugInterface
+class DeviceResource : public DebugInterface
 {
 
 public:
-  CDeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext);
-  void  DrawTestTriangle(CRenderer &Renderer);
-  HRESULT CreateDeviceResources(_Out_ CRenderer &Renderer);
+  HRESULT TestDeviceSupport();
+  DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext, _Out_ HRESULT *hr);
+  HRESULT CreateDeviceResources(_Out_ Renderer &Renderer);
 
   const ::Microsoft::WRL::ComPtr<IDXGISwapChain> &GetSwapChain() const { return m_pSwapChain; };
 
@@ -21,7 +21,7 @@ private:
   ::Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice{};
   ::Microsoft::WRL::ComPtr<IDXGISwapChain> m_pSwapChain{};
 
-  D3D_FEATURE_LEVEL m_featureLevel{};
+  D3D_FEATURE_LEVEL m_thisFeatureLevel{};
 };
 
 #endif

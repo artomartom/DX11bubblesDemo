@@ -3,10 +3,16 @@
 #define VISUAL_RENDER_HPP
 
 #include "../pch.hpp"
-class CRenderer;
+class Renderer;
 struct ViewPortSizeBuffer
 {
     DirectX::XMFLOAT2 ViewPortSize{};
+};
+
+enum Settings
+{
+    CircleTexFormat = DXGI_FORMAT_R8_UNORM,
+    SampleCount = 1,
 };
 
 struct FrameBuffer
@@ -24,12 +30,12 @@ struct FrameBuffer
 struct ColorsBuffer
 {
     // DirectXColors.h constants
-    DirectX::XMFLOAT4 LightYellow{1.000000000f, 1.000010000f, 0.878431439f, 1.f};
-    DirectX::XMFLOAT4 Violet{0.933333397f, 0.509803951f, 0.933333397f, 1.f};
-    DirectX::XMFLOAT4 OliveDrab{0.419607878f, 0.556862772f, 0.137254909f, 1.f};
-    DirectX::XMFLOAT4 DarkSalmon{0.913725555f, 0.588235319f, 0.478431404f, 1.f};
-    DirectX::XMFLOAT4 PapayaWhip{1.000000000f, 0.937254965f, 0.835294187f, 1.f};
-    DirectX::XMFLOAT4 SaddleBrown{0.545098066f, 0.270588249f, 0.074509807f, 1.f};
+    DirectX::XMFLOAT4 A{0x28 / 256.f, 0x31 / 256.f, 0xF2 / 256.f, 1.f};
+    DirectX::XMFLOAT4 B{0x79 / 256.f, 0xF5 / 256.f, 0x04 / 256.f, 1.f};
+    DirectX::XMFLOAT4 C{0x83 / 256.f, 0x1E / 256.f, 0x01 / 256.f, 1.f};
+    DirectX::XMFLOAT4 D{0x77 / 256.f, 0xCE / 256.f, 0xFB / 256.f, 1.f};
+    DirectX::XMFLOAT4 E{0x42 / 256.f, 0x42 / 256.f, 0x55 / 256.f, 1.f};
+    DirectX::XMFLOAT4 F{0x83 / 256.f, 0x20 / 256.f, 0x03 / 256.f, 1.f};
 };
 
 struct Vertex
@@ -47,13 +53,13 @@ struct Instance
     float SIZE{RandSize()};
     float PERIOD{Period()};
     UINT COLOR{RandColor()};
-    float STARTTIME{Instance::Period()};
-    inline void Reset(const CRenderer &Renderer, float startTime);
+    float STARTTIME{static_cast<float>(std::rand() % 20'000)};
+    inline void Reset(const Renderer &Renderer, float startTime);
 
+    static inline decltype(SIZE) RandSize() noexcept;
     static float RandPos() noexcept { return {((std::rand() % 1000) / 500.f) - 1.f}; };
-    static decltype(SIZE) RandSize() noexcept { return {((std::rand() % 2000) / 1300.f)}; };
     static decltype(TRANSLATION) RandUV() noexcept { return {RandPos(), RandPos()}; };
-    static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(ColorsBuffer::LightYellow)); };
+    static decltype(COLOR) RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(ColorsBuffer::A)); };
     static inline decltype(PERIOD) Period() noexcept;
     inline static UINT Index{};
 
@@ -64,15 +70,15 @@ struct Instance
     };
 };
 
-class CRenderer
+class Renderer
 {
-    friend class CDeviceResource;
+    friend class DeviceResource;
 
     const ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &GetContext() const { return m_pContext; };
     const ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> &GetRenderTargetView() const { return m_pRTV; };
 
 protected:
-    CRenderer()
+    Renderer()
     {
         Instance::SeedStdRand();
         Instance::Index = 0;
@@ -138,13 +144,13 @@ protected:
         ViewPortDesc.MaxDepth = 1.f;
         ViewPortDesc.TopLeftX = 0.f;
         ViewPortDesc.TopLeftY = 0.f;
-        CRenderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
+        Renderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
     };
 
     void Draw() const noexcept
     {
         static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
-        m_pContext->ClearRenderTargetView(CRenderer::m_pRTV.Get(), RTVClearColor);
+        m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), RTVClearColor);
         m_pContext->DrawInstanced(s_DrawVertexCount, s_DrawInstanceCount, 0u, 0u);
     };
 
@@ -176,30 +182,27 @@ protected:
 
 inline decltype(Instance::PERIOD) Instance::Period() noexcept
 {
-    int step{40'000 / CRenderer::s_DrawInstanceCount};
+    int step{40'000 / Renderer::s_DrawInstanceCount};
 
     decltype(Instance::PERIOD) res{(std::rand() % step) + (Instance::Index * step) + 3500.f};
 
     return res;
 };
+inline decltype(Instance::SIZE) Instance::RandSize() noexcept
+{
+    return {((std::rand() % 600 * (Index / Renderer::s_DrawInstanceCount) + 400) / 1300.f)};
+};
 
-inline void Instance::Reset(const CRenderer &Renderer, float startTime)
+inline void Instance::Reset(const Renderer &Renderer, float startTime)
 {
     *this = Instance{startTime};
 
-    D3D11_MAPPED_SUBRESOURCE mappedResource{};
-
     UINT offset{sizeof(Instance) * Index};
-    //  D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
-    //  Renderer.m_pContext->UpdateSubresource(
-    //      Renderer.m_pInstanceVertexBuffer.Get(),
-    //      0, &box, &Renderer.m_Instancies[Index], 0, 0);
-    H_CHECK(Renderer.m_pContext->Map(Renderer.m_pInstanceVertexBuffer.Get(), 0, D3D11_MAP_WRITE, 0, &mappedResource), L"");
-    Instance *SubResource{reinterpret_cast<Instance *>(mappedResource.pData)};
-    SubResource[Index] = *this;
-    //::memcpy(mappedResource.pData, &Renderer.m_Instancies[Index], sizeof(Instance));
-    Renderer.m_pContext->Unmap(Renderer.m_pInstanceVertexBuffer.Get(), 0);
+    D3D11_BOX box{offset, 0u, 0u, offset + sizeof(Instance), 1u, 1u};
+    Renderer.m_pContext->UpdateSubresource(
+        Renderer.m_pInstanceVertexBuffer.Get(),
+        0, &box, &Renderer.m_Instancies[Index], 0, 0);
 
-    Index = (Index + 1) % CRenderer::s_DrawInstanceCount;
+    Index = (Index + 1) % Renderer::s_DrawInstanceCount;
 };
 #endif
