@@ -7,7 +7,7 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
   
 )
 
-option(MAKEGUI "build  as a GUI rather then console app" OFF)
+option(MAKEGUI "build  as a GUI rather then console app" ON)
 
 if(MAKEGUI)
   set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
