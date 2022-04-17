@@ -131,13 +131,8 @@ protected:
     void SetViewPort(float Width, float Height)
     {
 
-        D3D11_VIEWPORT ViewPortDesc{};
-        ViewPortDesc.Width = Width;
-        ViewPortDesc.Height = Height;
-        ViewPortDesc.MinDepth = 0.f;
-        ViewPortDesc.MaxDepth = 1.f;
-        ViewPortDesc.TopLeftX = 0.f;
-        ViewPortDesc.TopLeftY = 0.f;
+        D3D11_VIEWPORT ViewPortDesc{0.f, 0.f, Width, Height, 0.f, 1.f};
+
         Renderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
     };
 

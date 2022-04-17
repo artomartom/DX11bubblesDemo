@@ -15,10 +15,6 @@ class App : public CoreApp, public Renderer
 {
 
 public:
-  App()
-  {
-    m_Stile |= WS_THICKFRAME;
-  };
   static int AppEntry(HINSTANCE hinst)
   {
     peekRun(Window::CCoreWindow<App>{hinst, {10, 10, 1700, 1000}});
@@ -74,6 +70,11 @@ public:
   void Draw() const noexcept
   {
     Renderer::Draw();
+    /**
+     *   The first argument instructs DXGI to block until VSync, putting the application
+     *  to sleep until the next VSync. This ensures we don't waste any cycles rendering
+     *  frames that will never be displayed to the screen.
+     */
     H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
 
     DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
