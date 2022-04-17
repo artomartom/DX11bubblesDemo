@@ -15,6 +15,10 @@ class App : public CoreApp, public Renderer
 {
 
 public:
+  App()
+  {
+    m_Stile |= WS_THICKFRAME;
+  };
   static int AppEntry(HINSTANCE hinst)
   {
     peekRun(Window::CCoreWindow<App>{hinst, {10, 10, 1700, 1000}});
@@ -102,7 +106,6 @@ private:
         window.App::Draw();
         //::snprintf(updateCount, _countof(updateCount), "Updates/sec %1.0f", 1.f/Renderer::Timer.GetDelta<float>());
         // window.SetHeader(updateCount);
-        
       };
     };
     return 0;

@@ -57,7 +57,7 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
    DXGI_SWAP_CHAIN_DESC d_SwapChain{
        static_cast<UINT>(TargetSize.cx), static_cast<UINT>(TargetSize.cy),
        60, 1, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
-       DXGI_MODE_SCALING_UNSPECIFIED, s_SampleCount, s_QualityLevel, DXGI_USAGE_RENDER_TARGET_OUTPUT,
+       DXGI_MODE_SCALING_UNSPECIFIED, 1, 0, DXGI_USAGE_RENDER_TARGET_OUTPUT,
        1, hwnd, true, DXGI_SWAP_EFFECT_DISCARD, 0};
 
    H_CHECK(*hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0,
@@ -301,8 +301,8 @@ HRESULT DeviceResource::GenerateCircleTexture(
    desc.MipLevels = (autogen) ? 0 : 1;
    desc.ArraySize = 1;
    desc.Format = CircleFormat;
-   desc.SampleDesc.Count = 1;   // s_SampleCount;
-   desc.SampleDesc.Quality = 0; // s_QualityLevel;
+   desc.SampleDesc.Count = 1;
+   desc.SampleDesc.Quality = 0;
    desc.Usage = D3D11_USAGE_DEFAULT;
    desc.BindFlags = (autogen) ? (D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET) : (D3D11_BIND_SHADER_RESOURCE);
    desc.CPUAccessFlags = 0;
