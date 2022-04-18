@@ -58,15 +58,13 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
        static_cast<UINT>(TargetSize.cx), static_cast<UINT>(TargetSize.cy),
        60, 1, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
        DXGI_MODE_SCALING_UNSPECIFIED, 1, 0, DXGI_USAGE_RENDER_TARGET_OUTPUT,
-       1, hwnd, true, DXGI_SWAP_EFFECT_DISCARD,  0 };
+       1, hwnd, true, DXGI_SWAP_EFFECT_DISCARD, 0};
 
    H_CHECK(*hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0,
                                                D3D11_SDK_VERSION, &d_SwapChain, &m_pSwapChain, &m_pDevice, &m_thisFeatureLevel, &pContext),
            L"D3D11CreateDeviceAndSwapChain failed");
 
    DBG_ONLY(DebugInterface::Init(m_pDevice));
-
-   
 };
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
@@ -271,14 +269,14 @@ HRESULT DeviceResource::GenerateCircleTexture(
    HRESULT hr{};
    bool autogen{false};
 
-   Vector2<UINT> imageSize{1000, 1000};
+   Vector2<UINT> imageSize{300, 300};
 
    UINT bpp{8};
 
    UINT Stride = (imageSize.x * bpp + 7) / 8;
-   UINT BufferSize = imageSize.y * Stride;
-   std::unique_ptr<BYTE[]> Buffer{std::make_unique<BYTE[]>(BufferSize)};
-   Vector2<UINT> Center{imageSize.x / 2, imageSize.y / 2};
+   UINT bufferSize = imageSize.y * Stride;
+   std::unique_ptr<BYTE[]> buffer{std::make_unique<BYTE[]>(bufferSize)};
+   // Vector2<UINT> Center{imageSize.x / 2, imageSize.y / 2};
 
    auto GetPos{
        [&](UINT Index) -> Vector2<float>
@@ -286,16 +284,31 @@ HRESULT DeviceResource::GenerateCircleTexture(
           return Vector2<float>{float(Index / imageSize.x) / imageSize.x * 2.f - 1.f, float(Index % imageSize.x) / imageSize.y * 2.f - 1.f};
        }};
 
-   for (UINT index{}; index != BufferSize; index++)
+   // fill buffer with  circle shape data
+
+   const BYTE maxIntensity{0x96};
+   const auto maxDistance{std::sqrtf(1 * 1 + 1 * 1)}; /// approximately 1.41421
+
+   const float edge{0.98f};
+   const float edgeWidth{1.f - edge};
+
+   for (UINT index{}; index != bufferSize; index++)
    {
       auto Pos{GetPos(index)};
       auto distance{std::sqrtf(Pos.x * Pos.x + Pos.y * Pos.y)};
-      if (distance > 1.f)
-         Buffer[index] = static_cast<BYTE>(0x00);
-      else
-         Buffer[index] = static_cast<BYTE>(/*0xFF -*/ 150 * distance);
-   };
+      if (distance > edge + edgeWidth)
+      {
 
+         buffer[index] = static_cast<BYTE>(0x0);
+      }
+      else
+      {
+         // if pixel is on the edge apply blur
+         distance = (distance > edge) ? (1.f - (distance - edge) / edgeWidth) : distance;
+
+         buffer[index] = static_cast<BYTE>(maxIntensity * (distance));
+      };
+   };
    // Create texture
    D3D11_TEXTURE2D_DESC desc{};
    desc.Width = imageSize.x;
@@ -328,11 +341,9 @@ HRESULT DeviceResource::GenerateCircleTexture(
          if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, ppTextureView)))
             return hr;
 
-         Context->UpdateSubresource(tex.Get(), 0, nullptr, Buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(BufferSize));
-
+         Context->UpdateSubresource(tex.Get(), 0, nullptr, buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(bufferSize));
          if (autogen)
          {
-
             Context->GenerateMips(*ppTextureView);
          }
       }
