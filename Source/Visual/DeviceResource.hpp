@@ -36,6 +36,8 @@ private:
   inline static UINT s_QualityLevel;
 
   D3D_FEATURE_LEVEL m_thisFeatureLevel{};
+
+  UINT m_numBackBuffers{};
 };
 
 #endif

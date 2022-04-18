@@ -75,7 +75,10 @@ public:
      *  to sleep until the next VSync. This ensures we don't waste any cycles rendering
      *  frames that will never be displayed to the screen.
      */
-    H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
+
+    // H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
+    DXGI_PRESENT_PARAMETERS params{};
+    H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u, &params));
 
     DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
   };

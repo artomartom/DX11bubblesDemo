@@ -46,6 +46,7 @@ HRESULT DeviceResource::TestDeviceSupport()
 };
 
 DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ComPtr<ID3D11DeviceContext> &pContext, _Out_ HRESULT *hr)
+:m_numBackBuffers{2}
 {
    HRESULT localhr{};
    if (hr == nullptr)
@@ -58,15 +59,13 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
        static_cast<UINT>(TargetSize.cx), static_cast<UINT>(TargetSize.cy),
        60, 1, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
        DXGI_MODE_SCALING_UNSPECIFIED, 1, 0, DXGI_USAGE_RENDER_TARGET_OUTPUT,
-       1, hwnd, true, DXGI_SWAP_EFFECT_DISCARD,  0 };
+       m_numBackBuffers, hwnd, true, DXGI_SWAP_EFFECT_FLIP_DISCARD, 0};
 
    H_CHECK(*hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0,
                                                D3D11_SDK_VERSION, &d_SwapChain, &m_pSwapChain, &m_pDevice, &m_thisFeatureLevel, &pContext),
            L"D3D11CreateDeviceAndSwapChain failed");
 
    DBG_ONLY(DebugInterface::Init(m_pDevice));
-
-   
 };
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
