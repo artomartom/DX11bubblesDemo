@@ -23,13 +23,17 @@ struct FrameBuffer
  */
 struct ColorsBuffer
 {
-    // DirectXColors.h constants
-    DirectX::XMFLOAT4 A{0x28 / 256.f, 0x31 / 256.f, 0xF2 / 256.f, 1.f};
-    DirectX::XMFLOAT4 B{0x79 / 256.f, 0xF5 / 256.f, 0x04 / 256.f, 1.f};
-    DirectX::XMFLOAT4 C{0x83 / 256.f, 0x1E / 256.f, 0x01 / 256.f, 1.f};
-    DirectX::XMFLOAT4 D{0x77 / 256.f, 0xCE / 256.f, 0xFB / 256.f, 1.f};
-    DirectX::XMFLOAT4 E{0x42 / 256.f, 0x42 / 256.f, 0x55 / 256.f, 1.f};
-    DirectX::XMFLOAT4 F{0x83 / 256.f, 0x20 / 256.f, 0x03 / 256.f, 1.f};
+    //static constexpr DirectX::XMFLOAT4 RTVClearColor {0xCF / 256.f, 0x9F / 256.f, 0xAE / 256.f, 0.99f};
+    //static constexpr DirectX::XMFLOAT4 RTVClearColor {0xA2 / 256.f, 0x4E / 256.f, 0x97 / 256.f, 0.99f};
+    static constexpr DirectX::XMFLOAT4 RTVClearColor {0x12 / 256.f, 0x0e / 256.f, 0x11 / 256.f, 0.99f};
+
+    DirectX::XMFLOAT4 A{0xFB / 256.f, 0xB5 / 256.f, 0xE0 / 256.f, 1.f};
+    DirectX::XMFLOAT4 B{0xB9 / 256.f, 0x80 / 256.f, 0xCE / 256.f, 1.f};
+    DirectX::XMFLOAT4 C{0x49 / 256.f, 0x0A / 256.f, 0xBA / 256.f, 1.f};
+    DirectX::XMFLOAT4 D{0x4B / 256.f, 0x37 / 256.f, 0x8E / 256.f, 1.f};
+    DirectX::XMFLOAT4 E{0x2B / 256.f, 0x6D / 256.f, 0xE2 / 256.f, 1.f};
+    DirectX::XMFLOAT4 F{0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f};
+
 };
 
 struct Vertex
@@ -138,9 +142,7 @@ protected:
 
     void Draw() const noexcept
     {
-        // static const float RTVClearColor[4]{0.f, 0.67f, 0.99f, 0.99f};
-        static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
-        m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), RTVClearColor);
+        m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), &ColorsBuffer::RTVClearColor.x);
 
         m_pContext->RSSetViewports(1, &m_ViewPort);
         m_pContext->OMSetRenderTargets(1u, Renderer::m_pRTV.GetAddressOf(), nullptr);
