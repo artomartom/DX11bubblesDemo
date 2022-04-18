@@ -28,10 +28,12 @@ public:
         if (H_FAIL(hr = pDXGIGetDebugInterface(__uuidof(IDXGIDebug), &m_pDebug)))
             return hr;
 
-        if (H_FAIL(hr = pDXGIGetDebugInterface(__uuidof(IDXGIInfoQueue), &m_pInfoQueue)))
+        if (H_FAIL(hr = pDXGIGetDebugInterface(__uuidof(IDXGIInfoQueue), &m_pGIInfoQueue)))
             return hr;
 
         if (H_FAIL(hr = pDevice->QueryInterface(__uuidof(ID3D11Debug), &m_pSDKLayerDebug)))
+            return hr;
+        if (H_FAIL(hr = pDevice->QueryInterface(__uuidof(ID3D11InfoQueue), &m_pInfoQueue)))
             return hr;
 
         DXGI_INFO_QUEUE_MESSAGE_ID InitialDenyList[]{294, 3146080};
@@ -48,22 +50,21 @@ public:
         static DXGI_INFO_QUEUE_FILTER filter{};
         filter.DenyList.NumIDs = 1;
         filter.DenyList.pIDList = &ID;
-        H_FAIL(hr = m_pInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_ALL, &filter));
+        H_FAIL(hr = m_pGIInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_ALL, &filter));
     };
 
     void PullDebugMessage()
     {
         static std::vector<char> pMessageBuffer(1024, '\0');
-
-        while (m_MessagePointer < m_pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilters(DXGI_DEBUG_ALL))
+        while (m_MessagePointer < m_pGIInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilters(DXGI_DEBUG_ALL))
         {
 
             unsigned long long messageLength{};
-            m_pInfoQueue->GetMessage(DXGI_DEBUG_ALL, m_MessagePointer, NULL, &messageLength);
+            m_pGIInfoQueue->GetMessage(DXGI_DEBUG_ALL, m_MessagePointer, NULL, &messageLength);
             pMessageBuffer.reserve(messageLength);
 
             DXGI_INFO_QUEUE_MESSAGE *pMessage{reinterpret_cast<DXGI_INFO_QUEUE_MESSAGE *>(pMessageBuffer.data())};
-            m_pInfoQueue->GetMessage(DXGI_DEBUG_ALL, m_MessagePointer, pMessage, &messageLength);
+            m_pGIInfoQueue->GetMessage(DXGI_DEBUG_ALL, m_MessagePointer, pMessage, &messageLength);
             m_MessagePointer++;
 
             void (*pSender)(const char *const &);
@@ -100,7 +101,7 @@ public:
     virtual ~DebugInterface()
     {
 
-        if (m_pInfoQueue != nullptr)
+        if (m_pGIInfoQueue != nullptr)
             DBG_ONLY(PullDebugMessage());
         //   if (m_pSDKLayerDebug != nullptr)
         //  m_pSDKLayerDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
@@ -113,7 +114,8 @@ public:
 private:
     ::Microsoft::WRL::ComPtr<ID3D11Debug> m_pSDKLayerDebug{};
     ::Microsoft::WRL::ComPtr<IDXGIDebug> m_pDebug{};
-    ::Microsoft::WRL::ComPtr<IDXGIInfoQueue> m_pInfoQueue{};
+    ::Microsoft::WRL::ComPtr<IDXGIInfoQueue> m_pGIInfoQueue{};
+    ::Microsoft::WRL::ComPtr<ID3D11InfoQueue> m_pInfoQueue{};
     UINT64 m_MessagePointer{};
     HMODULE m_hDxgiDebugDLL{nullptr};
 

@@ -23,17 +23,18 @@ public:
       _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext,
       _Out_ HRESULT *hr);
   HRESULT CreateDeviceResources(_Out_ Renderer &Renderer);
-  HRESULT HandleDeviceRemoved( ){return ERROR_CALL_NOT_IMPLEMENTED;};
+  HRESULT HandleDeviceRemoved() { return ERROR_CALL_NOT_IMPLEMENTED; };
 
-  const ::Microsoft::WRL::ComPtr<IDXGISwapChain> &GetSwapChain() const { return m_pSwapChain; };
+  const ::Microsoft::WRL::ComPtr<IDXGISwapChain1> &GetSwapChain() const { return m_pSwapChain; };
 
 protected:
 private:
   ::Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice{};
-  ::Microsoft::WRL::ComPtr<IDXGISwapChain> m_pSwapChain{};
+  ::Microsoft::WRL::ComPtr<IDXGISwapChain1> m_pSwapChain{};
 
   inline static UINT s_SampleCount;
   inline static UINT s_QualityLevel;
+     
 
   D3D_FEATURE_LEVEL m_thisFeatureLevel{};
 

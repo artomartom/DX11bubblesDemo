@@ -12,7 +12,7 @@ struct ViewPortSizeBuffer
 struct FrameBuffer
 {
     explicit FrameBuffer(long long t)
-        : Time{t / 20., t, t / 1000, t % 1000} {/* Log<Console>::Write(Time.x,Time.y,Time.z,Time.w);*/};
+        : Time{t / 20., t, t / 1000, t % 1000} {/* Log<File>::Write(Time.x,Time.y,Time.z,Time.w);*/};
 
     DirectX::XMFLOAT4 Time{};
 };
@@ -128,12 +128,12 @@ protected:
             0, nullptr, &ViewPortSize, 0, 0);
     };
 
-    void SetViewPort(float Width, float Height)
+    void SetViewPort(float Width, float Height)   noexcept
     {
 
-        D3D11_VIEWPORT ViewPortDesc{0.f, 0.f, Width, Height, 0.f, 1.f};
-
-        Renderer::m_pContext->RSSetViewports(1, &ViewPortDesc);
+        m_ViewPort.Width = Width;
+        m_ViewPort.Height = Height;
+        Renderer::m_pContext->RSSetViewports(1, &m_ViewPort);
     };
 
     void Draw() const noexcept
@@ -141,12 +141,16 @@ protected:
         // static const float RTVClearColor[4]{0.f, 0.67f, 0.99f, 0.99f};
         static const float RTVClearColor[4]{0.f, 0.f, 0.f, 0.99f};
         m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), RTVClearColor);
+
+        m_pContext->RSSetViewports(1, &m_ViewPort);
+        m_pContext->OMSetRenderTargets(1u, Renderer::m_pRTV.GetAddressOf(), nullptr);
         m_pContext->DrawInstanced(s_DrawVertexCount, s_DrawInstanceCount, 0u, 0u);
     };
 
     friend struct Instance;
     static constexpr UINT s_DrawVertexCount{6};
     static constexpr UINT s_DrawInstanceCount{105u};
+    D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
     Timer::CTimer Timer{};
 
