@@ -23,7 +23,7 @@ public:
       _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext,
       _Out_ HRESULT *hr);
   HRESULT CreateDeviceResources(_Out_ Renderer &Renderer);
-  HRESULT HandleDeviceRemoved( ){return ERROR_CALL_NOT_IMPLEMENTED;};
+  HRESULT HandleDeviceRemoved() { return ERROR_CALL_NOT_IMPLEMENTED; };
 
   const ::Microsoft::WRL::ComPtr<IDXGISwapChain> &GetSwapChain() const { return m_pSwapChain; };
 

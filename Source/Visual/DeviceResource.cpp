@@ -269,7 +269,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
    HRESULT hr{};
    bool autogen{false};
 
-   Vector2<UINT> imageSize{300, 300};
+   Vector2<UINT> imageSize{280, 280}; // look ok  if kept around 250  +
 
    UINT bpp{8};
 
