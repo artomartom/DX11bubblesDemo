@@ -48,13 +48,13 @@ public:
     {
 
       SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-      m_pDeviceResource = std::make_unique<DeviceResource>(m_Handle, RTSize, Renderer::m_pContext, &hr);
+      m_pDeviceResource = std::make_unique<DeviceResource>(m_Handle, Renderer::m_pContext, &hr);
       if (H_OK(hr))
       {
         if (H_OK(hr = m_pDeviceResource->CreateDeviceResources(*this)))
         {
+          // window's procedure sends OnSizeChanged event  on creation, so what we need to do here is only set new viewport before it happens
           Renderer::SetViewPort(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
-          Renderer::UpdateViewPortSizeBuffer(static_cast<float>(RTSize.cx), static_cast<float>(RTSize.cy));
           Renderer::SetPipeLine();
           return;
         };
@@ -69,7 +69,25 @@ public:
 
   void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
   {
-    Renderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+    HRESULT hr{};
+
+    if (m_pDeviceResource->GetSwapChain())
+    {
+      // H_FAIL(hr = m_pDeviceResource->GetSwapChain()->ResizeBuffers(
+      //            m_pDeviceResource->GetNumBackBuffer(),
+      //            args.m_New.cx, args.m_New.cy,
+      //            DXGI_FORMAT_UNKNOWN, 0u));
+
+      if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+      {
+        H_FAIL(m_pDeviceResource->HandleDeviceRemoved());
+      };
+    }
+    else
+    {
+      m_pDeviceResource->CreateSizeDependentDeviceResources(*this, m_Handle);
+      Renderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
+    };
   };
 
   void Draw() noexcept

@@ -128,7 +128,7 @@ protected:
             0, nullptr, &ViewPortSize, 0, 0);
     };
 
-    void SetViewPort(float Width, float Height)   noexcept
+    void SetViewPort(float Width, float Height) noexcept
     {
 
         m_ViewPort.Width = Width;

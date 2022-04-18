@@ -45,7 +45,7 @@ HRESULT DeviceResource::TestDeviceSupport()
    return S_OK;
 };
 
-DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ ComPtr<ID3D11DeviceContext> &pContext, _Out_ HRESULT *hr)
+DeviceResource::DeviceResource(const HWND &hwnd, _Out_ ComPtr<ID3D11DeviceContext> &pContext, _Out_ HRESULT *hr)
     : m_numBackBuffers{2}
 {
    HRESULT localhr{};
@@ -67,7 +67,6 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
 
    ComPtr<IDXGIDevice4> pDXGIDevice{};
    ComPtr<IDXGIAdapter> pDXGIAdapter{};
-   ComPtr<IDXGIFactory4> pDXGIFactory{};
 
    if (H_FAIL(*hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice4), (void **)&pDXGIDevice)))
       return;
@@ -75,12 +74,16 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
    if (H_FAIL(*hr = pDXGIDevice->GetAdapter(&pDXGIAdapter)))
       return;
 
-   if (H_FAIL(*hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&pDXGIFactory)))
+   if (H_FAIL(*hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&m_pDXGIFactory)))
       return;
+};
 
+HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer, HWND windowHandle)
+{
+   HRESULT hr{};
    DXGI_SWAP_CHAIN_DESC1 d_swapChain{};
-   d_swapChain.Width = static_cast<UINT>(TargetSize.cx);
-   d_swapChain.Height = static_cast<UINT>(TargetSize.cy);
+   d_swapChain.Width = static_cast<UINT>(Renderer.m_ViewPort.Width);
+   d_swapChain.Height = static_cast<UINT>(Renderer.m_ViewPort.Height);
    d_swapChain.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
    d_swapChain.Stereo = false;
    d_swapChain.SampleDesc = {1, 0};
@@ -95,7 +98,16 @@ DeviceResource::DeviceResource(const HWND &hwnd, const SIZE &TargetSize, _Out_ C
    d_fullScreenSwapChain.ScanlineOrdering;
    d_fullScreenSwapChain.Scaling;
    d_fullScreenSwapChain.Windowed = true;
-   H_FAIL(*hr = pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), hwnd, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain));
+   if (H_FAIL(hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain)))
+      return hr;
+
+   ComPtr<ID3D11Texture2D> backBuffer{};
+   if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer)))
+      return hr;
+   if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(backBuffer.Get(), 0, &Renderer.m_pRTV)))
+      return hr;
+
+   return S_OK;
 };
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
@@ -106,11 +118,6 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
    {
       return H_CHECK(hr, L"CoInitialize failed");
    };
-   ComPtr<ID3D11Texture2D> backBuffer{};
-   if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer)))
-      return hr;
-   if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(backBuffer.Get(), 0, &Renderer.m_pRTV)))
-      return hr;
 
    if (H_FAIL(hr = GenerateCircleTexture(Renderer.m_pContext.Get(), nullptr, &Renderer.m_pCircleTexView)))
       return hr;
