@@ -17,16 +17,19 @@ public:
       _Out_ ID3D11Resource **ppTexture,
       _Out_ ID3D11ShaderResourceView **ppTextureView);
 
-  DeviceResource(
-      _In_ const HWND &hwnd,
-      _Out_ ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext,
-      _Out_ HRESULT *hr);
+  DeviceResource(const HWND &windowHandle, _Out_ Renderer &Renderer, _Out_ HRESULT *hr);
   HRESULT CreateDeviceResources(_Out_ Renderer &Renderer);
-  HRESULT CreateSizeDependentDeviceResources(Renderer &Renderer, HWND windowHandle);
+  HRESULT CreateSizeDependentDeviceResources(Renderer &Renderer);
   HRESULT HandleDeviceRemoved() { return ERROR_CALL_NOT_IMPLEMENTED; };
 
-  UINT GetNumBackBuffer() const noexcept { return m_numBackBuffers; };
-  const ::Microsoft::WRL::ComPtr<IDXGISwapChain1> &GetSwapChain() const { return m_pSwapChain; };
+  UINT GetNumBackBuffer() const noexcept
+  {
+    return m_numBackBuffers;
+  };
+  const ::Microsoft::WRL::ComPtr<IDXGISwapChain1> &GetSwapChain() const
+  {
+    return m_pSwapChain;
+  };
 
 protected:
 private:

@@ -45,7 +45,7 @@ HRESULT DeviceResource::TestDeviceSupport()
    return S_OK;
 };
 
-DeviceResource::DeviceResource(const HWND &hwnd, _Out_ ComPtr<ID3D11DeviceContext> &pContext, _Out_ HRESULT *hr)
+DeviceResource::DeviceResource(const HWND &windowHandle, _Out_ Renderer &Renderer, _Out_ HRESULT *hr)
     : m_numBackBuffers{2}
 {
    HRESULT localhr{};
@@ -57,7 +57,7 @@ DeviceResource::DeviceResource(const HWND &hwnd, _Out_ ComPtr<ID3D11DeviceContex
    unsigned int flags{};
    DBG_ONLY(flags |= D3D11_CREATE_DEVICE_DEBUG);
 
-   H_CHECK(*hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0, D3D11_SDK_VERSION, &m_pDevice, &m_thisFeatureLevel, &pContext),
+   H_CHECK(*hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0, D3D11_SDK_VERSION, &m_pDevice, &m_thisFeatureLevel, &Renderer.m_pContext),
            L"D3D11CreateDevice  failed");
    DBG_ONLY(
        {
@@ -76,11 +76,7 @@ DeviceResource::DeviceResource(const HWND &hwnd, _Out_ ComPtr<ID3D11DeviceContex
 
    if (H_FAIL(*hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&m_pDXGIFactory)))
       return;
-};
 
-HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer, HWND windowHandle)
-{
-   HRESULT hr{};
    DXGI_SWAP_CHAIN_DESC1 d_swapChain{};
    d_swapChain.Width = static_cast<UINT>(Renderer.m_ViewPort.Width);
    d_swapChain.Height = static_cast<UINT>(Renderer.m_ViewPort.Height);
@@ -93,18 +89,23 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer, H
    d_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
    d_swapChain.AlphaMode = DXGI_ALPHA_MODE ::DXGI_ALPHA_MODE_UNSPECIFIED;
    d_swapChain.Flags = 0;
+
    DXGI_SWAP_CHAIN_FULLSCREEN_DESC d_fullScreenSwapChain{};
    d_fullScreenSwapChain.RefreshRate;
    d_fullScreenSwapChain.ScanlineOrdering;
    d_fullScreenSwapChain.Scaling;
    d_fullScreenSwapChain.Windowed = true;
-   if (H_FAIL(hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain)))
-      return hr;
+   H_FAIL(*hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain));
+};
 
-   ComPtr<ID3D11Texture2D> backBuffer{};
-   if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer)))
+HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer)
+{
+   HRESULT hr{};
+
+   // ComPtr<ID3D11Texture2D> backBuffer{};
+   if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &Renderer.m_pRenderTarget)))
       return hr;
-   if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(backBuffer.Get(), 0, &Renderer.m_pRTV)))
+   if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(Renderer.m_pRenderTarget.Get(), 0, &Renderer.m_pRTV)))
       return hr;
 
    return S_OK;
@@ -322,14 +323,13 @@ HRESULT DeviceResource::GenerateCircleTexture(
           return Vector2<float>{float(Index / imageSize.x) / imageSize.x * 2.f - 1.f, float(Index % imageSize.x) / imageSize.y * 2.f - 1.f};
        }};
 
-   // fill buffer with  circle shape data
-
    const BYTE maxIntensity{0x96};
    const auto maxDistance{std::sqrtf(1 * 1 + 1 * 1)}; /// approximately 1.41421
 
    const float edge{0.98f};
    const float edgeWidth{1.f - edge};
 
+   // fill buffer with  circle shape data
    for (UINT index{}; index != bufferSize; index++)
    {
       auto Pos{GetPos(index)};
@@ -341,7 +341,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
       }
       else
       {
-         // if pixel is on the edge apply blur
+         // apply blur, if pixel is on the edge
          distance = (distance > edge) ? (1.f - (distance - edge) / edgeWidth) : distance;
 
          buffer[index] = static_cast<BYTE>(maxIntensity * (distance));
