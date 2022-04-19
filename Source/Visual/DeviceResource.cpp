@@ -45,7 +45,7 @@ HRESULT DeviceResource::TestDeviceSupport()
    return S_OK;
 };
 
-DeviceResource::DeviceResource(const HWND &windowHandle, _Out_ Renderer &Renderer, _Out_ HRESULT *hr)
+DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
     : m_numBackBuffers{2}
 {
    HRESULT localhr{};
@@ -76,29 +76,9 @@ DeviceResource::DeviceResource(const HWND &windowHandle, _Out_ Renderer &Rendere
 
    if (H_FAIL(*hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&m_pDXGIFactory)))
       return;
-
-   DXGI_SWAP_CHAIN_DESC1 d_swapChain{};
-   d_swapChain.Width = static_cast<UINT>(Renderer.m_ViewPort.Width);
-   d_swapChain.Height = static_cast<UINT>(Renderer.m_ViewPort.Height);
-   d_swapChain.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-   d_swapChain.Stereo = false;
-   d_swapChain.SampleDesc = {1, 0};
-   d_swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-   d_swapChain.BufferCount = m_numBackBuffers;
-   d_swapChain.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
-   d_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-   d_swapChain.AlphaMode = DXGI_ALPHA_MODE ::DXGI_ALPHA_MODE_UNSPECIFIED;
-   d_swapChain.Flags = 0;
-
-   DXGI_SWAP_CHAIN_FULLSCREEN_DESC d_fullScreenSwapChain{};
-   d_fullScreenSwapChain.RefreshRate;
-   d_fullScreenSwapChain.ScanlineOrdering;
-   d_fullScreenSwapChain.Scaling;
-   d_fullScreenSwapChain.Windowed = true;
-   H_FAIL(*hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain));
 };
 
-HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer)
+HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHandle, Renderer &Renderer)
 {
    HRESULT hr{};
 
@@ -122,9 +102,28 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer)
    }
    else
    {
-   };
 
-   // ComPtr<ID3D11Texture2D> backBuffer{};
+      DXGI_SWAP_CHAIN_DESC1 d_swapChain{};
+      d_swapChain.Width = static_cast<UINT>(Renderer.m_ViewPort.Width);
+      d_swapChain.Height = static_cast<UINT>(Renderer.m_ViewPort.Height);
+      d_swapChain.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+      d_swapChain.Stereo = false;
+      d_swapChain.SampleDesc = {1, 0};
+      d_swapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+      d_swapChain.BufferCount = m_numBackBuffers;
+      d_swapChain.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
+      d_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+      d_swapChain.AlphaMode = DXGI_ALPHA_MODE ::DXGI_ALPHA_MODE_UNSPECIFIED;
+      d_swapChain.Flags = 0;
+
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC d_fullScreenSwapChain{};
+      d_fullScreenSwapChain.RefreshRate;
+      d_fullScreenSwapChain.ScanlineOrdering;
+      d_fullScreenSwapChain.Scaling;
+      d_fullScreenSwapChain.Windowed = true;
+      if (H_FAIL(hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain)))
+         return hr;
+   };
    if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &Renderer.m_pRenderTarget)))
       return hr;
    if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(Renderer.m_pRenderTarget.Get(), 0, &Renderer.m_pRTV)))

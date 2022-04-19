@@ -48,7 +48,7 @@ public:
     {
 
       SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-      m_pDeviceResource = std::make_unique<DeviceResource>(m_Handle, *this, &hr);
+      m_pDeviceResource = std::make_unique<DeviceResource>( *this, &hr);
       if (H_OK(hr))
       {
         if (H_OK(hr = m_pDeviceResource->CreateDeviceResources(*this)))
@@ -71,12 +71,7 @@ public:
     float NewWidth{static_cast<float>(args.m_New.cx)};
     float NewHeight{static_cast<float>(args.m_New.cy)};
 
-    if (args.m_Type == ::Window::SizeChangedArgs::Type::Maximized)
-    {
-      // swapChain->SetFullscreenState();
-      // return;
-    }
-
+   
     if (m_ViewPort.Width == NewWidth && m_ViewPort.Height == NewHeight)
     {
       return;
@@ -86,7 +81,7 @@ public:
 
       Renderer::m_ViewPort.Width = NewWidth;
       Renderer::m_ViewPort.Height = NewHeight;
-      m_pDeviceResource->CreateSizeDependentDeviceResources(*this);
+      m_pDeviceResource->CreateSizeDependentDeviceResources(m_Handle, *this);
       Renderer::UpdateViewPortSizeBuffer(NewWidth, NewHeight);
     }
   };

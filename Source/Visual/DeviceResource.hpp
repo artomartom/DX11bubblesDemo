@@ -17,9 +17,9 @@ public:
       _Out_ ID3D11Resource **ppTexture,
       _Out_ ID3D11ShaderResourceView **ppTextureView);
 
-  DeviceResource(const HWND &windowHandle, _Out_ Renderer &Renderer, _Out_ HRESULT *hr);
+  DeviceResource( _Out_ Renderer &Renderer, _Out_ HRESULT *hr);
   HRESULT CreateDeviceResources(_Out_ Renderer &Renderer);
-  HRESULT CreateSizeDependentDeviceResources(Renderer &Renderer);
+  HRESULT CreateSizeDependentDeviceResources(const HWND &windowHandle,Renderer &Renderer);
   HRESULT HandleDeviceRemoved() { return ERROR_CALL_NOT_IMPLEMENTED; };
 
   UINT GetNumBackBuffer() const noexcept
