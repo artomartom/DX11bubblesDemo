@@ -102,12 +102,35 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(Renderer &Renderer)
 {
    HRESULT hr{};
 
+   Renderer.m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
+   Renderer.m_pRTV.Reset();
+   Renderer.m_pRenderTarget.Reset();
+   Renderer.m_pContext->Flush();
+
+   if (m_pSwapChain)
+   {
+
+      H_FAIL(hr = m_pSwapChain->ResizeBuffers(
+                 GetNumBackBuffer(),
+                 Renderer.m_ViewPort.Width, Renderer.m_ViewPort.Height,
+                 DXGI_FORMAT_UNKNOWN, 0u));
+
+      if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+      {
+         H_FAIL(HandleDeviceRemoved());
+      };
+   }
+   else
+   {
+   };
+
    // ComPtr<ID3D11Texture2D> backBuffer{};
    if (H_FAIL(hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &Renderer.m_pRenderTarget)))
       return hr;
    if (H_FAIL(hr = m_pDevice->CreateRenderTargetView(Renderer.m_pRenderTarget.Get(), 0, &Renderer.m_pRTV)))
       return hr;
 
+   Renderer.SetPipeLine();
    return S_OK;
 };
 

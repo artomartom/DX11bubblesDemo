@@ -17,7 +17,7 @@ class App : public CoreApp, public Renderer
 public:
   static int AppEntry(HINSTANCE hinst)
   {
-    peekRun(Window::CCoreWindow<App>{hinst, {10, 10, 1700, 1000}});
+    peekRun(Window::CCoreWindow<App>{hinst, {50, 50, 1700, 1000}});
     MessageBeep(5);
     return 0;
   };
@@ -68,34 +68,27 @@ public:
 
   void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
   {
-    HRESULT hr{};
+    float NewWidth{static_cast<float>(args.m_New.cx)};
+    float NewHeight{static_cast<float>(args.m_New.cy)};
 
-    Renderer::m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
-    Renderer::m_pRTV.Reset();
-    Renderer::m_pRenderTarget.Reset();
-    Renderer::m_pContext->Flush();
-
-    m_ViewPort.Width = static_cast<float>(args.m_New.cx);
-    m_ViewPort.Height = static_cast<float>(args.m_New.cy);
-    if (m_pDeviceResource->GetSwapChain())
+    if (args.m_Type == ::Window::SizeChangedArgs::Type::Maximized)
     {
-      H_FAIL(hr = m_pDeviceResource->GetSwapChain()->ResizeBuffers(
-                 m_pDeviceResource->GetNumBackBuffer(),
-                 m_ViewPort.Width, m_ViewPort.Height,
-                 DXGI_FORMAT_UNKNOWN, 0u));
+      // swapChain->SetFullscreenState();
+      // return;
+    }
 
-      if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
-      {
-        H_FAIL(m_pDeviceResource->HandleDeviceRemoved());
-      };
+    if (m_ViewPort.Width == NewWidth && m_ViewPort.Height == NewHeight)
+    {
+      return;
     }
     else
     {
-    };
 
-    m_pDeviceResource->CreateSizeDependentDeviceResources(*this);
-    Renderer::UpdateViewPortSizeBuffer(static_cast<float>(args.m_New.cx), static_cast<float>(args.m_New.cy));
-    SetPipeLine();
+      Renderer::m_ViewPort.Width = NewWidth;
+      Renderer::m_ViewPort.Height = NewHeight;
+      m_pDeviceResource->CreateSizeDependentDeviceResources(*this);
+      Renderer::UpdateViewPortSizeBuffer(NewWidth, NewHeight);
+    }
   };
 
   void Draw() noexcept
