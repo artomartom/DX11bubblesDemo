@@ -114,12 +114,12 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHan
       d_swapChain.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
       d_swapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
       d_swapChain.AlphaMode = DXGI_ALPHA_MODE ::DXGI_ALPHA_MODE_UNSPECIFIED;
-      d_swapChain.Flags = 0;
+      d_swapChain.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
       DXGI_SWAP_CHAIN_FULLSCREEN_DESC d_fullScreenSwapChain{};
-      d_fullScreenSwapChain.RefreshRate;
-      d_fullScreenSwapChain.ScanlineOrdering;
-      d_fullScreenSwapChain.Scaling;
+      d_fullScreenSwapChain.RefreshRate = {0u, 1u};
+      d_fullScreenSwapChain.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER ::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+      d_fullScreenSwapChain.Scaling = DXGI_MODE_SCALING ::DXGI_MODE_SCALING_STRETCHED;
       d_fullScreenSwapChain.Windowed = true;
       if (H_FAIL(hr = m_pDXGIFactory->CreateSwapChainForHwnd(m_pDevice.Get(), windowHandle, &d_swapChain, &d_fullScreenSwapChain, nullptr, &m_pSwapChain)))
          return hr;
@@ -132,6 +132,7 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHan
    Renderer.SetPipeLine();
    return S_OK;
 };
+
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 {

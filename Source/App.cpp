@@ -17,6 +17,8 @@ class App : public CoreApp, public Renderer
 public:
   static int AppEntry(HINSTANCE hinst)
   {
+    DBG_ONLY(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
+    
     peekRun(Window::CCoreWindow<App>{hinst, {50, 50, 1700, 1000}});
     MessageBeep(5);
     return 0;
@@ -48,7 +50,7 @@ public:
     {
 
       SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
-      m_pDeviceResource = std::make_unique<DeviceResource>( *this, &hr);
+      m_pDeviceResource = std::make_unique<DeviceResource>(*this, &hr);
       if (H_OK(hr))
       {
         if (H_OK(hr = m_pDeviceResource->CreateDeviceResources(*this)))
@@ -71,7 +73,11 @@ public:
     float NewWidth{static_cast<float>(args.m_New.cx)};
     float NewHeight{static_cast<float>(args.m_New.cy)};
 
-   
+     switch (args.m_Type)
+    {
+      CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); return; });
+      CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); return; });
+    }
     if (m_ViewPort.Width == NewWidth && m_ViewPort.Height == NewHeight)
     {
       return;
@@ -98,13 +104,19 @@ public:
        *  to sleep until the next VSync. This ensures we don't waste any cycles rendering
        *  frames that will never be displayed to the screen.
        */
-      H_FAIL(m_pDeviceResource->GetSwapChain()->Present(1u, 0u));
+      H_FAIL(m_pDeviceResource->Present());
     };
     DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
   };
 
   void OnClose() noexcept
   {
+    /**
+     * You may not release a swap chain in full-screen mode
+     * because doing so may create thread contention (which
+     * will cause DXGI to raise a non-continuable exception).
+     */
+    m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr);
     m_pDeviceResource.release();
   };
 
