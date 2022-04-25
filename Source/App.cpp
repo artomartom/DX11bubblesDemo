@@ -119,7 +119,6 @@ public:
   };
 
 private:
-  std::unique_ptr<DeviceResource> m_pDeviceResource{};
   bool m_ShouldDraw{true};
   bool m_ShouldClose{false};
 

@@ -19,8 +19,6 @@ struct FrameBuffer
     DirectX::XMFLOAT4 Time{};
 };
 
-
-
 struct Vertex
 {
     DirectX::XMFLOAT2 POSITION{};
@@ -29,6 +27,7 @@ struct Vertex
 class Renderer
 {
     friend class DeviceResource;
+    friend struct Instance;
 
     const ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &GetContext() const { return m_pContext; };
     const ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> &GetRenderTargetView() const { return m_pRTV; };
@@ -41,8 +40,9 @@ protected:
     void SetViewPort(float Width, float Height) noexcept;
     void Draw() const noexcept;
 
-    friend struct Instance;
-    static constexpr UINT s_DrawVertexCount{6};   // 6 point draw a quad  
+    std::unique_ptr<DeviceResource> m_pDeviceResource{};
+
+    static constexpr UINT s_DrawVertexCount{6}; // 6 point draw a quad
     static constexpr UINT s_DrawInstanceCount{105u};
     D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 

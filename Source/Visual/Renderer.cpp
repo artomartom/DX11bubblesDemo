@@ -1,6 +1,8 @@
 #pragma once
 #include "Renderer.hpp"
 
+#include "DeviceResource.hpp"
+
 Renderer::Renderer() noexcept
 {
     Instance::SeedStdRand();
