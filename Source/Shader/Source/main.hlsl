@@ -1,7 +1,6 @@
 #include "Func.hlsl"
 
-//Texture2DMS<float>     CircleTex   :TEXTURE    :register(t0);
-Texture2D      CircleTex   :TEXTURE    :register(t0);
+Texture2D <float>     CircleTex   :TEXTURE    :register(t0);
 SamplerState  Sampler  :SAMPLER  :register(s0);
 
 cbuffer ViewPortBuffer : register(b0)
@@ -85,9 +84,8 @@ VertexOut vmain(VertexIn In,   uint VertID : SV_VertexID)
  
 float4   pmain(VertexOut In) : SV_Target
 {
+    return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv )  ) ;  
     
-    //return    float4( colors[In.color].xyz,CircleTex.Load(size.x * In.uv.x,size.y* In.uv.y ).x ) ;  
-    return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv ).x ) ;  
 };
 
  

@@ -8,8 +8,10 @@ using namespace ::DirectX;
 
 static constexpr struct
 {
-   DXGI_FORMAT dx{DXGI_FORMAT_R8_UNORM};
-} CircleFormat{};
+   DXGI_FORMAT dx{DXGI_FORMAT_R32_FLOAT};
+   UINT bpp{32};
+} circleFormat{};
+using pixelT = float;
 
 HRESULT DeviceResource::TestDeviceSupport()
 {
@@ -30,7 +32,7 @@ HRESULT DeviceResource::TestDeviceSupport()
    s_SampleCount = 4;
    //... and multi-sampling support
    H_CHECK(hr = tmp_pDevice->CheckMultisampleQualityLevels(
-               CircleFormat.dx, // Circle Texture format used
+               circleFormat.dx, // Circle Texture format used
                s_SampleCount,   // sample count
                &s_QualityLevel),
            L"CheckMultisampleQualityLevels");
@@ -79,6 +81,7 @@ DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
 
    if (H_FAIL(*hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&m_pDXGIFactory)))
       return;
+   SETDBGNAME_COM(m_pDXGIFactory);
 };
 
 HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHandle, Renderer &Renderer)
@@ -171,13 +174,14 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       if (H_FAIL(hr = m_pDevice->CreateVertexShader(
                      VertexByteCode, sizeof(VertexByteCode), nullptr, &Renderer.m_pVertexShader)))
          return hr;
-
+      SETDBGNAME_COM(Renderer.m_pVertexShader);
       if (H_FAIL(hr = m_pDevice->CreateInputLayout(
                      InputElementDescs,
                      _countof(InputElementDescs),
                      VertexByteCode, sizeof(VertexByteCode),
                      &Renderer.m_pInputLayout)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pInputLayout);
    };
 
    /**
@@ -191,6 +195,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 #endif
       if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pPixelShader);
    };
 
    D3D11_BUFFER_DESC d_VertexBuffer{};
@@ -210,6 +215,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pInstanceVertexBuffer);
    };
    /**
     *     Sampler
@@ -225,6 +231,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
       if (H_FAIL(hr = m_pDevice->CreateSamplerState(&SamplerDesc, &Renderer.m_pSampler)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pSampler);
    };
    /**
     *     Create Constant Buffers
@@ -242,6 +249,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       d_ConstBuffer.ByteWidth = (sizeof(ViewPortSizeBuffer) + 15) / 16 * 16;
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pViewPortSizeBuffer)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pViewPortSizeBuffer);
 
       d_ConstBuffer.Usage = D3D11_USAGE_DEFAULT;
       d_ConstBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -249,6 +257,8 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       d_ConstBuffer.ByteWidth = (sizeof(FrameBuffer) + 15) / 16 * 16;
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pFrameBuffer)))
          return hr;
+
+      SETDBGNAME_COM(Renderer.m_pFrameBuffer);
    };
 
    /**
@@ -275,6 +285,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
       if (H_FAIL(hr = m_pDevice->CreateBlendState(&d_BlendState, &Renderer.m_pBlend)))
          return hr;
+      SETDBGNAME_COM(Renderer.m_pBlend);
    };
 
    CoUninitialize();
@@ -295,13 +306,11 @@ HRESULT DeviceResource::GenerateCircleTexture(
    HRESULT hr{};
    bool autogen{false};
 
-   Vector2<UINT> imageSize{280, 280}; // look ok  if kept around 250  +
+   Vector2<UINT> imageSize{280, 280}; // looks ok  if kept around 250  +
 
-   UINT bpp{8};
-
-   UINT Stride = (imageSize.x * bpp + 7) / 8;
+   UINT Stride = (imageSize.x * circleFormat.bpp + 7) / 8;
    UINT bufferSize = imageSize.y * Stride;
-   std::unique_ptr<BYTE[]> buffer{std::make_unique<BYTE[]>(bufferSize)};
+   std::unique_ptr<pixelT[]> buffer{std::make_unique<pixelT[]>(bufferSize)};
    // Vector2<UINT> Center{imageSize.x / 2, imageSize.y / 2};
 
    auto GetPos{
@@ -310,7 +319,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
           return Vector2<float>{float(Index / imageSize.x) / imageSize.x * 2.f - 1.f, float(Index % imageSize.x) / imageSize.y * 2.f - 1.f};
        }};
 
-   const BYTE maxIntensity{0x96};
+   const pixelT maxIntensity{0.4f};
    const auto maxDistance{std::sqrtf(1 * 1 + 1 * 1)}; /// approximately 1.41421
 
    const float edge{0.98f};
@@ -324,14 +333,14 @@ HRESULT DeviceResource::GenerateCircleTexture(
       if (distance > edge + edgeWidth)
       {
 
-         buffer[index] = static_cast<BYTE>(0x0);
+         buffer[index] = static_cast<pixelT>(0x0);
       }
       else
       {
          // apply blur, if pixel is on the edge
          distance = (distance > edge) ? (1.f - (distance - edge) / edgeWidth) : distance;
 
-         buffer[index] = static_cast<BYTE>(maxIntensity * (distance));
+         buffer[index] = static_cast<pixelT>(maxIntensity * (distance));
       };
    };
    // Create texture
@@ -340,7 +349,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
    desc.Height = imageSize.y;
    desc.MipLevels = (autogen) ? 0 : 1;
    desc.ArraySize = 1;
-   desc.Format = CircleFormat.dx;
+   desc.Format = circleFormat.dx;
    desc.SampleDesc.Count = 1;
    desc.SampleDesc.Quality = 0;
    desc.Usage = D3D11_USAGE_DEFAULT;
@@ -351,26 +360,30 @@ HRESULT DeviceResource::GenerateCircleTexture(
    ComPtr<ID3D11Texture2D> tex{};
    if (H_FAIL(hr = m_pDevice->CreateTexture2D(&desc, nullptr, &tex)))
       return hr;
+   SETDBGNAME_COM(tex);
 
    if (tex.Get() != nullptr)
    {
       if (ppTextureView != nullptr)
       {
+         ComPtr<ID3D11ShaderResourceView> pTextureView{};
          D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-         SRVDesc.Format = CircleFormat.dx;
+         SRVDesc.Format = circleFormat.dx;
          SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
          SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
 
          // SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
          // SRVDesc.Texture2DMS.UnusedField_NothingToDefine = 1;
-         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, ppTextureView)))
+         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, &pTextureView)))
             return hr;
-
+         SETDBGNAME_COM(pTextureView);
          Context->UpdateSubresource(tex.Get(), 0, nullptr, buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(bufferSize));
          if (autogen)
          {
             Context->GenerateMips(*ppTextureView);
-         }
+         };
+
+         *ppTextureView = pTextureView.Detach();
       }
 
       if (ppTexture != nullptr)

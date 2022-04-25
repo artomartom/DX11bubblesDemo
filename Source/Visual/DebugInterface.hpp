@@ -3,8 +3,13 @@
 #ifndef VISUAL_DEBUG_HPP
 #define VISUAL_DEBUG_HPP
 
-// d3dDebug->ReportLiveDeviceObjects( D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL );
-//  SetDebugObjectName( pObject, "texture.jpg" );
+#if defined(_DEBUG) || defined(PROFILE)
+#define SETDBGNAME_COM(pObj) (SetDebugObjectName(pObj.Get(), #pObj))
+#define SETDBGNAME(pObj) (SetDebugObjectName(pObj, #pObj))
+#else
+#define SETDBGNAME_COM(pObj)
+#define SETDBGNAME(pObj)
+#endif
 
 class DebugInterface
 {
@@ -42,6 +47,21 @@ public:
             PushDeniedMessage(each);
 
         return S_OK;
+    };
+
+    template <typename IDXObject, UINT TNameLength>
+    inline static void SetDebugObjectName(IDXObject *pObject, const char (&name)[TNameLength])
+    {
+        static_assert(std::is_convertible_v<IDXObject *, ID3D11DeviceChild *> ||
+                          std::is_convertible_v<IDXObject *, IDXGIObject *>,
+                      "neither pObject or any of its bases is a DirectX interface");
+
+        DBG_ONLY({
+            if (pObject)
+            {
+                pObject->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof(name) - 1, name);
+            }
+        });
     };
 
     void PushDeniedMessage(DXGI_INFO_QUEUE_MESSAGE_ID &ID)

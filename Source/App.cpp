@@ -55,7 +55,6 @@ public:
       {
         if (H_OK(hr = m_pDeviceResource->CreateDeviceResources(*this)))
         {
-          // window's procedure sends OnSizeChanged event  on creation ,so we dont set ViewPort Size here
           Renderer::SetPipeLine();
           return;
         };
