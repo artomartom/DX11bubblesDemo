@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(DX11bubblesDemo)
 set(CMAKE_CXX_STANDARD 20)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
-  ${PROJECT_SOURCE_DIR}/bubblesDemo.exe.manifest
+  ${PROJECT_SOURCE_DIR}/DX11bubblesDemo.exe.manifest
   ${PROJECT_SOURCE_DIR}/Visual/DeviceResource.cpp
   ${PROJECT_SOURCE_DIR}/Visual/Renderer.cpp
   ${PROJECT_SOURCE_DIR}/Visual/Instance.cpp

@@ -18,7 +18,7 @@ public:
   static int AppEntry(HINSTANCE hinst)
   {
     DBG_ONLY(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
-    
+
     peekRun(Window::CCoreWindow<App>{hinst, {50, 50, 1700, 1000}});
     MessageBeep(5);
     return 0;
@@ -73,7 +73,7 @@ public:
     float NewWidth{static_cast<float>(args.m_New.cx)};
     float NewHeight{static_cast<float>(args.m_New.cy)};
 
-     switch (args.m_Type)
+    switch (args.m_Type)
     {
       CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); return; });
       CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); return; });
@@ -107,6 +107,7 @@ public:
       H_FAIL(m_pDeviceResource->Present());
     };
     DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
+    DBG_ONLY(m_pDeviceResource->DebugInterface::PullDebugMessage());
   };
 
   void OnClose() noexcept
@@ -117,7 +118,6 @@ public:
      * will cause DXGI to raise a non-continuable exception).
      */
     m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr);
-    m_pDeviceResource.release();
   };
 
 private:
