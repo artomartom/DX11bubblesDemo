@@ -9,6 +9,10 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
   
 )
 
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Visual)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Shader/Debug)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Shader/Release)
+
 option(MAKEGUI "build  as a GUI rather then console app" ON)
 
 if(MAKEGUI)
