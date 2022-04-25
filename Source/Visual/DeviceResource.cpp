@@ -6,7 +6,9 @@
 using ::Microsoft::WRL::ComPtr;
 using namespace ::DirectX;
 
-static constexpr DXGI_FORMAT CircleFormat{DXGI_FORMAT_R8_UNORM};
+static constexpr struct{
+   DXGI_FORMAT dx {DXGI_FORMAT_R8_UNORM}; 
+}CircleFormat{};
 
 HRESULT DeviceResource::TestDeviceSupport()
 {
@@ -27,7 +29,7 @@ HRESULT DeviceResource::TestDeviceSupport()
    s_SampleCount = 4;
    //... and multi-sampling support
    H_CHECK(hr = tmp_pDevice->CheckMultisampleQualityLevels(
-               CircleFormat,  // Circle Texture format used
+               CircleFormat.dx,  // Circle Texture format used
                s_SampleCount, // sample count
                &s_QualityLevel),
            L"CheckMultisampleQualityLevels");
@@ -376,7 +378,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
    desc.Height = imageSize.y;
    desc.MipLevels = (autogen) ? 0 : 1;
    desc.ArraySize = 1;
-   desc.Format = CircleFormat;
+   desc.Format = CircleFormat.dx;
    desc.SampleDesc.Count = 1;
    desc.SampleDesc.Quality = 0;
    desc.Usage = D3D11_USAGE_DEFAULT;
@@ -393,7 +395,7 @@ HRESULT DeviceResource::GenerateCircleTexture(
       if (ppTextureView != nullptr)
       {
          D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-         SRVDesc.Format = CircleFormat;
+         SRVDesc.Format = CircleFormat.dx;
          SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
          SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
 
