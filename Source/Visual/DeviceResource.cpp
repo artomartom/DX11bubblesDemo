@@ -6,9 +6,10 @@
 using ::Microsoft::WRL::ComPtr;
 using namespace ::DirectX;
 
-static constexpr struct{
-   DXGI_FORMAT dx {DXGI_FORMAT_R8_UNORM}; 
-}CircleFormat{};
+static constexpr struct
+{
+   DXGI_FORMAT dx{DXGI_FORMAT_R8_UNORM};
+} CircleFormat{};
 
 HRESULT DeviceResource::TestDeviceSupport()
 {
@@ -29,8 +30,8 @@ HRESULT DeviceResource::TestDeviceSupport()
    s_SampleCount = 4;
    //... and multi-sampling support
    H_CHECK(hr = tmp_pDevice->CheckMultisampleQualityLevels(
-               CircleFormat.dx,  // Circle Texture format used
-               s_SampleCount, // sample count
+               CircleFormat.dx, // Circle Texture format used
+               s_SampleCount,   // sample count
                &s_QualityLevel),
            L"CheckMultisampleQualityLevels");
    s_QualityLevel--;
@@ -134,7 +135,6 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHan
    Renderer.SetPipeLine();
    return S_OK;
 };
-
 
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 {

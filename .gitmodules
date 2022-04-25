@@ -1,3 +1,4 @@
 [submodule "Source/Hello"]
 	path = Source/Hello
 	url = https://github.com/artomartom/Hello.git
+	branch = main
