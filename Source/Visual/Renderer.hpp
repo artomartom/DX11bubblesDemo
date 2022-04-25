@@ -58,7 +58,7 @@ protected:
     void Draw() const noexcept;
 
     friend struct Instance;
-    static constexpr UINT s_DrawVertexCount{6};
+    static constexpr UINT s_DrawVertexCount{6};   // 6 point draw a quad  
     static constexpr UINT s_DrawInstanceCount{105u};
     D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
@@ -75,7 +75,6 @@ protected:
 
     ::Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout{};
 
-    ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVertexBuffer{};         // 6 point draw a quad , never changes
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pInstanceVertexBuffer{}; // data for each circle
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pViewPortSizeBuffer{};   // Changes On resizing
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pFrameBuffer{};          // changes every update

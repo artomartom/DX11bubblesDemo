@@ -23,15 +23,6 @@ cbuffer ColorsBuffer : register(b2)
 
 struct VertexIn
 {   
-	/*vertex
-          {{-1.f, +1.f}}
-          {{+1.f, +1.f}}
-          {{+1.f, -1.f}}
-          {{-1.f, +1.f}}
-          {{+1.f, -1.f}}
-          {{-1.f, -1.f}}
-      */
-    float2 pos: POSITION;  // 8
 	//instance
     float2 trans: TRANSLATION;  // 8
     float  size: SIZE;  //  4
@@ -49,13 +40,24 @@ struct VertexOut
 	float2 uv : TEXCOORD0;
 }; 
 
-
-VertexOut vmain(VertexIn In)
+static float2 quadPos[6] = 
 {
+    {-1.f, +1.f},
+    {+1.f, +1.f},
+    {+1.f, -1.f},
+    {-1.f, +1.f},
+    {+1.f, -1.f},
+    {-1.f, -1.f},
+};
+
+VertexOut vmain(VertexIn In,   uint VertID : SV_VertexID)
+{
+
+    float2 pos = quadPos[VertID];
     VertexOut VertexOut;
-    VertexOut.uv =float2(In.pos.x >0,In.pos.y <0);
+    VertexOut.uv =float2(pos.x >0,pos.y <0);
     VertexOut.color=In.color;
-    In.pos.x/= size.x/size.y ;
+    pos.x/= size.x/size.y ; 
      
     float  scalar= 0;
     float FromStart=FrameTime.y-In.startTime;
@@ -69,9 +71,9 @@ VertexOut vmain(VertexIn In)
         scalar =FromStart /In.period ;  // scale the circle up
     }; 
         
-    In.pos*=In.size   *scalar;
-    In.pos +=In.trans ;
-    VertexOut.pos= float4(    In.pos ,0.0f,1.0f);
+    pos*=In.size   *scalar;
+    pos +=In.trans ;
+    VertexOut.pos= float4(    pos ,0.0f,1.0f);
     return VertexOut;
 };
  

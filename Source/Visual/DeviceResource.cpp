@@ -160,8 +160,6 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 #endif
 
       const D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
-          {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-
           {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
           {"SIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
           {"PERIOD", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
@@ -198,30 +196,6 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
    D3D11_BUFFER_DESC d_VertexBuffer{};
    D3D11_SUBRESOURCE_DATA d_VertexData{};
 
-   /**
-    *    Create Vertex Buffer
-    */
-   {
-
-      Vertex Vertices[Renderer.s_DrawVertexCount]{
-          {{-1.f, +1.0f}},
-          {{+1.f, +1.0f}},
-          {{+1.f, -1.0f}},
-          {{-1.f, +1.0f}},
-          {{+1.f, -1.0f}},
-          {{-1.f, -1.0f}},
-      };
-
-      d_VertexBuffer.ByteWidth = sizeof(Vertices);
-      d_VertexBuffer.Usage = D3D11_USAGE_IMMUTABLE;
-      d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-      d_VertexBuffer.StructureByteStride = sizeof(Vertex);
-
-      d_VertexData.pSysMem = Vertices;
-
-      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pVertexBuffer)))
-         return hr;
-   };
    /**
     *     Create  Instance  Vertex  Buffer
     */

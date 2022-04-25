@@ -12,7 +12,8 @@ void Renderer::SetPipeLine() const noexcept
     UINT strides[]{sizeof(Vertex), sizeof(Instance)};
     UINT offsets[]{0, 0};
 
-    ID3D11Buffer *buffers[2]{m_pVertexBuffer.Get(), m_pInstanceVertexBuffer.Get()};
+    ID3D11Buffer *buffers[2]{nullptr,                        // vertex buffer
+                             m_pInstanceVertexBuffer.Get()}; // instance buffer
     ID3D11Buffer *constBuffers[3]{
         m_pViewPortSizeBuffer.Get(),
         m_pFrameBuffer.Get(),
