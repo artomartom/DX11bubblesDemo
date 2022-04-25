@@ -106,7 +106,6 @@ public:
        */
       H_FAIL(m_pDeviceResource->Present());
     };
-    DBG_ONLY(m_pDeviceResource->DebugInterface::Report());
     DBG_ONLY(m_pDeviceResource->DebugInterface::PullDebugMessage());
   };
 

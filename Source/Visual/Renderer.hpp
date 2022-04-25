@@ -19,23 +19,7 @@ struct FrameBuffer
     DirectX::XMFLOAT4 Time{};
 };
 
-/**
- *  (sizeof(ColorsBuffer )%16 ==0  )
- *  used by shader as a float3 [6]
- */
-struct ColorsBuffer
-{
-    // static constexpr DirectX::XMFLOAT4 RTVClearColor {0xCF / 256.f, 0x9F / 256.f, 0xAE / 256.f, 0.99f};
-    // static constexpr DirectX::XMFLOAT4 RTVClearColor {0xA2 / 256.f, 0x4E / 256.f, 0x97 / 256.f, 0.99f};
-    static constexpr DirectX::XMFLOAT4 RTVClearColor{0x12 / 256.f, 0x0e / 256.f, 0x11 / 256.f, 0.99f};
 
-    DirectX::XMFLOAT4 A{0xFB / 256.f, 0xB5 / 256.f, 0xE0 / 256.f, 1.f};
-    DirectX::XMFLOAT4 B{0xB9 / 256.f, 0x80 / 256.f, 0xCE / 256.f, 1.f};
-    DirectX::XMFLOAT4 C{0x49 / 256.f, 0x0A / 256.f, 0xBA / 256.f, 1.f};
-    DirectX::XMFLOAT4 D{0x4B / 256.f, 0x37 / 256.f, 0x8E / 256.f, 1.f};
-    DirectX::XMFLOAT4 E{0x2B / 256.f, 0x6D / 256.f, 0xE2 / 256.f, 1.f};
-    DirectX::XMFLOAT4 F{0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f};
-};
 
 struct Vertex
 {
@@ -78,7 +62,6 @@ protected:
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pInstanceVertexBuffer{}; // data for each circle
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pViewPortSizeBuffer{};   // Changes On resizing
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pFrameBuffer{};          // changes every update
-    ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pColorsBuffer{};         // Never Changes
 
     ::Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pCircleTexView{};
     ::Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSampler{};

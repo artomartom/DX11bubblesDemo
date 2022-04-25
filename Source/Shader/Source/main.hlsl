@@ -14,16 +14,12 @@ cbuffer FrameBuffer : register(b1)
     float4 FrameTime;
     // st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
 };
-
-
-cbuffer ColorsBuffer : register(b2)
-{
-    float4 colors[6] ;   //6*(4*4)
-};
+ 
 
 struct VertexIn
 {   
-	//instance
+    // no vertex data  (quadPos is used )
+	//per instance data 
     float2 trans: TRANSLATION;  // 8
     float  size: SIZE;  //  4
     float  period: PERIOD;  //  4
@@ -48,6 +44,16 @@ static float2 quadPos[6] =
     {-1.f, +1.f},
     {+1.f, -1.f},
     {-1.f, -1.f},
+};
+
+static float4 colorBuffer[6] = 
+{
+{0xFB / 256.f, 0xB5 / 256.f, 0xE0 / 256.f, 1.f},
+{0xB9 / 256.f, 0x80 / 256.f, 0xCE / 256.f, 1.f},
+{0x49 / 256.f, 0x0A / 256.f, 0xBA / 256.f, 1.f},
+{0x4B / 256.f, 0x37 / 256.f, 0x8E / 256.f, 1.f},
+{0x2B / 256.f, 0x6D / 256.f, 0xE2 / 256.f, 1.f},
+{0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f},
 };
 
 VertexOut vmain(VertexIn In,   uint VertID : SV_VertexID)
@@ -81,7 +87,7 @@ float4   pmain(VertexOut In) : SV_Target
 {
     
     //return    float4( colors[In.color].xyz,CircleTex.Load(size.x * In.uv.x,size.y* In.uv.y ).x ) ;  
-    return    float4( colors[In.color].xyz,CircleTex.Sample( Sampler, In.uv ).x ) ;  
+    return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv ).x ) ;  
 };
 
  

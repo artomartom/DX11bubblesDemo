@@ -233,7 +233,6 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
       // ViewPortSizeBuffer   /*    */ m_pViewPortSizeBuffer
       // FrameBuffer   /*           */ m_pFrameBuffer
-      // ColorsBuffer   /*          */ m_pColorsBuffer
 
       D3D11_BUFFER_DESC d_ConstBuffer{};
 
@@ -249,17 +248,6 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       d_ConstBuffer.CPUAccessFlags = 0;
       d_ConstBuffer.ByteWidth = (sizeof(FrameBuffer) + 15) / 16 * 16;
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pFrameBuffer)))
-         return hr;
-
-      d_ConstBuffer.Usage = D3D11_USAGE_IMMUTABLE;
-      d_ConstBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-      d_ConstBuffer.CPUAccessFlags = 0;
-      d_ConstBuffer.ByteWidth = (sizeof(ColorsBuffer) + 15) / 16 * 16;
-
-      ColorsBuffer d_defaultColorsBuffer{};
-      D3D11_SUBRESOURCE_DATA d_ConstBufferData{&d_defaultColorsBuffer, 0, 0};
-
-      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, &d_ConstBufferData, &Renderer.m_pColorsBuffer)))
          return hr;
    };
 

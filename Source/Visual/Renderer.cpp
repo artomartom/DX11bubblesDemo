@@ -17,7 +17,6 @@ void Renderer::SetPipeLine() const noexcept
     ID3D11Buffer *constBuffers[3]{
         m_pViewPortSizeBuffer.Get(),
         m_pFrameBuffer.Get(),
-        m_pColorsBuffer.Get(),
     };
 
     m_pContext->IASetInputLayout(m_pInputLayout.Get());
@@ -59,7 +58,9 @@ void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcep
 
 void Renderer::Draw() const noexcept
 {
-    m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), &ColorsBuffer::RTVClearColor.x);
+    static constexpr DirectX::XMFLOAT4 RTVClearColor{0x12 / 256.f, 0x0e / 256.f, 0x11 / 256.f, 0.99f};
+
+    m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), &RTVClearColor.x);
 
     m_pContext->RSSetViewports(1, &m_ViewPort);
     m_pContext->OMSetRenderTargets(1u, Renderer::m_pRTV.GetAddressOf(), nullptr);

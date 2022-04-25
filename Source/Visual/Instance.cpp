@@ -30,4 +30,4 @@ void Instance::Reset(const Renderer &Renderer, float startTime)
     Index = (Index + 1) % Renderer::s_DrawInstanceCount;
 };
 
-decltype(Instance::COLOR) Instance::RandColor() noexcept { return std::rand() % (sizeof(ColorsBuffer) / sizeof(ColorsBuffer::A)); };
+decltype(Instance::COLOR) Instance::RandColor() noexcept { return std::rand() % 6; }; // 6 is element count of  color array in vertex shader
