@@ -6,48 +6,31 @@
 using ::Microsoft::WRL::ComPtr;
 using namespace ::DirectX;
 
-static constexpr struct
-{
-   DXGI_FORMAT dx{DXGI_FORMAT_R32_FLOAT};
-   UINT bpp{32};
-} circleFormat{};
-using pixelT = float;
-
 HRESULT DeviceResource::TestDeviceSupport()
 {
-   HRESULT hr{};
-   ComPtr<ID3D11Device> tmp_pDevice{};
-
-   D3D_FEATURE_LEVEL featureLevels[1]{
-       D3D_FEATURE_LEVEL_11_0,
-   };
-   D3D_FEATURE_LEVEL thisFeatureLevel{};
-   // first we create temporary Device to ...
-   H_CHECK(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, featureLevels, _countof(featureLevels), D3D11_SDK_VERSION, &tmp_pDevice, &thisFeatureLevel, nullptr),
-           L"D3D11CreateDevice failed");
+   return S_OK; // TODO
+   // HRESULT hr{};
+   // ComPtr<ID3D11Device> tmp_pDevice{};
+   //
+   // D3D_FEATURE_LEVEL featureLevels[1]{
+   //    D3D_FEATURE_LEVEL_11_0,
+   //};
+   // D3D_FEATURE_LEVEL thisFeatureLevel{};
+   //// first we create temporary Device to ...
+   // H_CHECK(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, featureLevels, _countof(featureLevels), D3D11_SDK_VERSION, &tmp_pDevice, &thisFeatureLevel, nullptr),
+   //         L"D3D11CreateDevice failed");
 
    //... check feature level
    // TODO
 
-   s_SampleCount = 4;
-   //... and multi-sampling support
-   H_CHECK(hr = tmp_pDevice->CheckMultisampleQualityLevels(
-               circleFormat.dx, // Circle Texture format used
-               s_SampleCount,   // sample count
-               &s_QualityLevel),
-           L"CheckMultisampleQualityLevels");
-   s_QualityLevel--;
-   // Log<File>::Write(L"Sample_Count/Quality_level ",s_SampleCount, s_QualityLevel);
-   s_QualityLevel = 2;
-
-   if (hr < 0 || s_QualityLevel == 0)
-   {
-      hr = ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
-      Error<File>::Write(L"Multi-sampling: ERROR_DEVICE_FEATURE_NOT_SUPPORTED");
-      // TODO Feature support exception
-      return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
-   };
-   return S_OK;
+   // if (hr < 0)
+   //{
+   //    hr = ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
+   //    Error<File>::Write(L"ERROR_DEVICE_FEATURE_NOT_SUPPORTED");
+   //    // TODO Feature support exception
+   //    return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
+   // };
+   // return S_OK;
 };
 
 DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
@@ -64,10 +47,12 @@ DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
 
    H_CHECK(*hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0, D3D11_SDK_VERSION, &m_pDevice, &m_thisFeatureLevel, &Renderer.m_pContext),
            L"D3D11CreateDevice  failed");
+
    DBG_ONLY(
        {
-          if (H_FAIL(*hr = DebugInterface::Init(m_pDevice)))
-             return;
+          if (D3D11_CREATE_DEVICE_DEBUG && m_pDevice->GetCreationFlags())
+             if (H_FAIL(*hr = DebugInterface::Init(m_pDevice)))
+                return;
        });
 
    ComPtr<IDXGIDevice4> pDXGIDevice{};
@@ -148,7 +133,8 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       return H_CHECK(hr, L"CoInitialize failed");
    };
 
-   if (H_FAIL(hr = GenerateCircleTexture(Renderer.m_pContext.Get(), nullptr, &Renderer.m_pCircleTexView)))
+   if (H_FAIL(hr = ComputeCircleTexture(Renderer.m_pContext, nullptr, &Renderer.m_pCircleTexView,
+                                        {1, 280, 1}, {280, 280})))
       return hr;
 
    /**
@@ -292,104 +278,109 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
    return S_OK;
 };
 
-template <typename T>
-struct Vector2
-{
-   T x, y;
-};
+HRESULT DeviceResource::ComputeCircleTexture(
+    _In_ const ComPtr<ID3D11DeviceContext> &pContext,
 
-HRESULT DeviceResource::GenerateCircleTexture(
-    _In_ const ComPtr<ID3D11DeviceContext> &Context,
     _Out_ ID3D11Resource **ppTexture,
-    _Out_ ID3D11ShaderResourceView **ppTextureView)
+    _Out_ ID3D11ShaderResourceView **ppTextureView,
+    const XMUINT3 &&threadGroupCount,
+    const XMUINT2 &&imageSize)
+
 {
-   HRESULT hr{};
-   bool autogen{false};
 
-   Vector2<UINT> imageSize{280, 280}; // looks ok  if kept around 250  +
+   if (!pContext)
+      return E_NOINTERFACE;
 
-   UINT Stride = (imageSize.x * circleFormat.bpp + 7) / 8;
-   UINT bufferSize = imageSize.y * Stride;
-   std::unique_ptr<pixelT[]> buffer{std::make_unique<pixelT[]>(bufferSize)};
-   // Vector2<UINT> Center{imageSize.x / 2, imageSize.y / 2};
-
-   auto GetPos{
-       [&](UINT Index) -> Vector2<float>
-       {
-          return Vector2<float>{float(Index / imageSize.x) / imageSize.x * 2.f - 1.f, float(Index % imageSize.x) / imageSize.y * 2.f - 1.f};
-       }};
-
-   const pixelT maxIntensity{0.4f};
-   const auto maxDistance{std::sqrtf(1 * 1 + 1 * 1)}; /// approximately 1.41421
-
-   const float edge{0.98f};
-   const float edgeWidth{1.f - edge};
-
-   // fill buffer with  circle shape data
-   for (UINT index{}; index != bufferSize; index++)
+   /** compute shader requirements:
+    * RWTexture2D - FL 11.0
+    *
+    */
+   if (m_pDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
    {
-      auto Pos{GetPos(index)};
-      auto distance{std::sqrtf(Pos.x * Pos.x + Pos.y * Pos.y)};
-      if (distance > edge + edgeWidth)
-      {
-
-         buffer[index] = static_cast<pixelT>(0x0);
-      }
-      else
-      {
-         // apply blur, if pixel is on the edge
-         distance = (distance > edge) ? (1.f - (distance - edge) / edgeWidth) : distance;
-
-         buffer[index] = static_cast<pixelT>(maxIntensity * (distance));
-      };
-   };
-   // Create texture
-   D3D11_TEXTURE2D_DESC desc{};
-   desc.Width = imageSize.x;
-   desc.Height = imageSize.y;
-   desc.MipLevels = (autogen) ? 0 : 1;
-   desc.ArraySize = 1;
-   desc.Format = circleFormat.dx;
-   desc.SampleDesc.Count = 1;
-   desc.SampleDesc.Quality = 0;
-   desc.Usage = D3D11_USAGE_DEFAULT;
-   desc.BindFlags = (autogen) ? (D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET) : (D3D11_BIND_SHADER_RESOURCE);
-   desc.CPUAccessFlags = 0;
-   desc.MiscFlags = (autogen) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
-
-   ComPtr<ID3D11Texture2D> tex{};
-   if (H_FAIL(hr = m_pDevice->CreateTexture2D(&desc, nullptr, &tex)))
-      return hr;
-   SETDBGNAME_COM(tex);
-
-   if (tex.Get() != nullptr)
-   {
-      if (ppTextureView != nullptr)
-      {
-         ComPtr<ID3D11ShaderResourceView> pTextureView{};
-         D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-         SRVDesc.Format = circleFormat.dx;
-         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-         SRVDesc.Texture2D.MipLevels = (autogen) ? -1 : 1;
-
-         // SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-         // SRVDesc.Texture2DMS.UnusedField_NothingToDefine = 1;
-         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(tex.Get(), &SRVDesc, &pTextureView)))
-            return hr;
-         SETDBGNAME_COM(pTextureView);
-         Context->UpdateSubresource(tex.Get(), 0, nullptr, buffer.get(), static_cast<UINT>(Stride), static_cast<UINT>(bufferSize));
-         if (autogen)
-         {
-            Context->GenerateMips(*ppTextureView);
-         };
-
-         *ppTextureView = pTextureView.Detach();
-      }
-
-      if (ppTexture != nullptr)
-      {
-         *ppTexture = tex.Detach();
-      }
+      return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
    }
+   static constexpr struct
+   {
+      DXGI_FORMAT dx{DXGI_FORMAT_R32_FLOAT};
+      UINT bpp{32};
+   } circleFormat{};
+   using pixelT = float;
+
+   HRESULT hr{};
+   ComPtr<ID3D11Texture2D> pTexture{};
+   ComPtr<ID3D11UnorderedAccessView> pTextureUAV{};
+   /**
+    * Create shader from byte code in header
+    */
+   ComPtr<ID3D11ComputeShader> pComputeShader{};
+   {
+
+#ifdef _DEBUG
+#include "../Shader/Debug/Compute.hpp"
+#else
+#include "../Shader/Release/Compute.hpp"
+#endif
+      if (H_FAIL(hr = m_pDevice->CreateComputeShader(ComputeByteCode, sizeof(ComputeByteCode), nullptr, &pComputeShader)))
+         return hr;
+   }
+
+   /**
+    * Create texture  we write to
+    */
+   {
+
+      D3D11_TEXTURE2D_DESC desc{};
+      desc.Width = imageSize.x;
+      desc.Height = imageSize.y;
+      desc.MipLevels = 0;
+      desc.ArraySize = 1;
+      desc.Format = circleFormat.dx;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+      desc.Usage = D3D11_USAGE_DEFAULT;
+      desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+      desc.CPUAccessFlags = 0;
+      desc.MiscFlags = 0;
+
+      if (H_FAIL(hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture)))
+         return hr;
+      pTexture->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("circleTexture") - 1, "circleTexture");
+   }
+   /**
+    * Create Unordered Access View of  texture we write to
+    */
+   {
+      D3D11_UNORDERED_ACCESS_VIEW_DESC descUAV{};
+      descUAV.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+      descUAV.Buffer.FirstElement = 0;
+      descUAV.Format = circleFormat.dx;
+
+      if (H_FAIL(hr = m_pDevice->CreateUnorderedAccessView(pTexture.Get(), &descUAV, &pTextureUAV)))
+         return hr;
+   }
+   /**
+    * Start computation
+    */
+   {
+      pContext->CSSetShader(pComputeShader.Get(), nullptr, 0);
+      pContext->CSSetUnorderedAccessViews(0, 1, pTextureUAV.GetAddressOf(), nullptr);
+      pContext->Dispatch(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+      pContext->ClearState();
+   }
+
+   if (ppTexture != nullptr)
+   {
+      *ppTexture = pTexture.Detach();
+   }
+   if (ppTextureView != nullptr)
+   {
+      D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+      SRVDesc.Format = circleFormat.dx;
+      SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+      SRVDesc.Texture2D.MipLevels = 1;
+
+      H_FAIL(hr = m_pDevice->CreateShaderResourceView(pTexture.Get(), &SRVDesc, ppTextureView));
+   }
+
    return S_OK;
 };

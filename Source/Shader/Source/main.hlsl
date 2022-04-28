@@ -1,19 +1,49 @@
 #include "Func.hlsl"
 
-Texture2D <float>     CircleTex   :TEXTURE    :register(t0);
-SamplerState  Sampler  :SAMPLER  :register(s0);
+//  compute
 
-cbuffer ViewPortBuffer : register(b0)
-{
-    float2 size ;   
-};
-
-cbuffer FrameBuffer : register(b1)
-{
-    float4 FrameTime;
-    // st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
-};
+RWTexture2D<float> tex : register(u0);
  
+#define circleSizex 280
+#define circleSizey 280
+#define maxIntensity 0.5f
+#define maxDistance 1.41421
+#define edge 0.96f
+#define edgeWidth (1.f - edge)
+
+[numthreads(circleSizex, 1, 1)] void mainCircle(
+      uint3 dispatchThreadId
+    : SV_DispatchThreadID     )
+{
+    if (dispatchThreadId.x >= circleSizex || dispatchThreadId.y >= circleSizey)
+        return;
+
+    float2 Pos = float2((float(dispatchThreadId.x) / circleSizex) * 2.f - 1.f,
+                        (float(dispatchThreadId.y) / circleSizey) * 2.f - 1.f);
+
+    float distance = length(Pos);
+
+    if (distance > edge + edgeWidth)
+    {
+        tex[dispatchThreadId.xy] = 0.f;
+        return;
+    }
+    else
+    {
+
+        distance = (distance < edge) ? distance : (1.0f - (distance - edge) / edgeWidth);
+        tex[dispatchThreadId.xy] = maxIntensity * distance;
+        return;
+    };
+}
+
+// end compute
+
+
+
+cbuffer ViewPortBuffer : register(b0){    float2 size ;   };
+//   st - time since application start   st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
+cbuffer FrameBuffer : register(b1){    float4 FrameTime;};   
 
 struct VertexIn
 {   
@@ -55,12 +85,13 @@ static float4 colorBuffer[6] =
 {0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f},
 };
 
-VertexOut vmain(VertexIn In,   uint VertID : SV_VertexID)
+VertexOut mainVertex(VertexIn In,   uint VertID : SV_VertexID)
 {
 
     float2 pos = quadPos[VertID];
     VertexOut VertexOut;
-    VertexOut.uv =float2(pos.x >0,pos.y <0);
+     
+    VertexOut.uv = (pos+1.f )/2.f;
     VertexOut.color=In.color;
     pos.x/= size.x/size.y ; 
      
@@ -81,8 +112,11 @@ VertexOut vmain(VertexIn In,   uint VertID : SV_VertexID)
     VertexOut.pos= float4(    pos ,0.0f,1.0f);
     return VertexOut;
 };
+
+Texture2D <float>     CircleTex   :TEXTURE    :register(t0);
+SamplerState  Sampler  :SAMPLER  :register(s0);
  
-float4   pmain(VertexOut In) : SV_Target
+float4   mainPixel(VertexOut In) : SV_Target
 {
     return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv )  ) ;  
     
