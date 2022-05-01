@@ -48,7 +48,6 @@ DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
    H_CHECK(*hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0, D3D11_SDK_VERSION, &m_pDevice, &m_thisFeatureLevel, &Renderer.m_pContext),
            L"D3D11CreateDevice  failed");
 
-
    DBG_ONLY(
        {
           if (D3D11_CREATE_DEVICE_DEBUG && m_pDevice->GetCreationFlags())
@@ -129,7 +128,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 {
    HRESULT hr{};
    hr = CoInitialize(0);
-   if (H_CHECK(hr, L"CoInitialize failed") && hr != S_FALSE)
+   if (!H_CHECK(hr, L"CoInitialize failed") && hr != S_FALSE)
    {
       return hr;
    };
@@ -236,7 +235,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       d_ConstBuffer.ByteWidth = (sizeof(ViewPortSizeBuffer) + 15) / 16 * 16;
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pViewPortSizeBuffer)))
          return hr;
-     
+
       SETDBGNAME_COM(Renderer.m_pViewPortSizeBuffer);
 
       d_ConstBuffer.Usage = D3D11_USAGE_DEFAULT;
