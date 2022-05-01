@@ -24,7 +24,11 @@ public:
         typedef HRESULT(__stdcall * DXGIGetDebugInterface)(REFIID, void **);
 
         if (!m_hDxgiDebugDLL)
-            return H_ERR(::GetLastError(), L"While Loading dxgidebug.dll");
+        {
+            hr = HRESULT_FROM_WIN32(::GetLastError());
+            H_ERR(hr, L"While Loading dxgidebug.dll");
+            return hr;
+        };
 
         // populate function pointers
         W32(const auto pDXGIGetDebugInterface = reinterpret_cast<DXGIGetDebugInterface>(

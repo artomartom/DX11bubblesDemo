@@ -20,10 +20,10 @@ public:
 
   HRESULT ComputeCircleTexture(
       _In_ const ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &pContext,
+      _In_ const DirectX::XMUINT3 &&threadGroupCount,
+      _In_ const DirectX::XMUINT2 &&imageSize,
       _Out_ ID3D11Resource **ppTexture,
-      _Out_ ID3D11ShaderResourceView **ppTextureView,
-      const DirectX::XMUINT3 &&threadGroupCount,
-      const DirectX::XMUINT2 &&imageSize);
+      _Out_ ID3D11ShaderResourceView **ppTextureView);
 
   UINT GetNumBackBuffer() const noexcept
   {
@@ -33,6 +33,10 @@ public:
   {
     return m_pSwapChain;
   };
+  void  GetContext(  ID3D11DeviceContext** ppContext) const
+  {
+      m_pDevice->GetImmediateContext(ppContext);
+  }; 
 
 protected:
 private:

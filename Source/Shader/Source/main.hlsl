@@ -1,7 +1,6 @@
 #include "Func.hlsl"
 
 //  compute
-
 RWTexture2D<float> tex : register(u0);
  
 #define circleSizex 280
@@ -36,12 +35,12 @@ RWTexture2D<float> tex : register(u0);
         return;
     };
 }
-
 // end compute
 
 
 
 cbuffer ViewPortBuffer : register(b0){    float2 size ;   };
+
 //   st - time since application start   st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
 cbuffer FrameBuffer : register(b1){    float4 FrameTime;};   
 

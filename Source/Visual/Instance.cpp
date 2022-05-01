@@ -2,8 +2,6 @@
 #include "Instance.hpp"
 #include "Renderer.hpp"
 
-//  UINT Instance::Index{};
-
 decltype(Instance::PERIOD) Instance::Period() noexcept
 {
     int step{40'000 / Renderer::s_DrawInstanceCount};
@@ -12,6 +10,7 @@ decltype(Instance::PERIOD) Instance::Period() noexcept
 
     return res;
 };
+
 decltype(Instance::SIZE) Instance::RandSize() noexcept
 {
     return {((std::rand() % 600 * (Index / Renderer::s_DrawInstanceCount) + 400) / 1300.f)};

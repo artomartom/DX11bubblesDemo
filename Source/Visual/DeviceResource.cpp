@@ -48,6 +48,7 @@ DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
    H_CHECK(*hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, 0, flags, 0, 0, D3D11_SDK_VERSION, &m_pDevice, &m_thisFeatureLevel, &Renderer.m_pContext),
            L"D3D11CreateDevice  failed");
 
+
    DBG_ONLY(
        {
           if (D3D11_CREATE_DEVICE_DEBUG && m_pDevice->GetCreationFlags())
@@ -128,13 +129,13 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 {
    HRESULT hr{};
    hr = CoInitialize(0);
-   if (hr != S_OK && hr != S_FALSE)
+   if (H_CHECK(hr, L"CoInitialize failed") && hr != S_FALSE)
    {
-      return H_CHECK(hr, L"CoInitialize failed");
+      return hr;
    };
 
-   if (H_FAIL(hr = ComputeCircleTexture(Renderer.m_pContext, nullptr, &Renderer.m_pCircleTexView,
-                                        {1, 280, 1}, {280, 280})))
+   if (H_FAIL(hr = ComputeCircleTexture(Renderer.m_pContext, {1, 280, 1}, {280, 280},
+                                        nullptr, &Renderer.m_pCircleTexView)))
       return hr;
 
    /**
@@ -142,11 +143,11 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     */
    {
 
-#ifdef _DEBUG
-#include "../Shader/Debug/Vertex.hpp"
-#else
+//#ifdef _DEBUG
+//#include "../Shader/Debug/Vertex.hpp"
+//#else
 #include "../Shader/Release/Vertex.hpp"
-#endif
+      //#endif
 
       const D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
           {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
@@ -174,11 +175,11 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     *    Pixel Shader
     */
    {
-#ifdef _DEBUG
-#include "../Shader/Debug/Pixel.hpp"
-#else
+//#ifdef _DEBUG
+//#include "../Shader/Debug/Pixel.hpp"
+//#else
 #include "../Shader/Release/Pixel.hpp"
-#endif
+      //#endif
       if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
       SETDBGNAME_COM(Renderer.m_pPixelShader);
@@ -235,6 +236,7 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       d_ConstBuffer.ByteWidth = (sizeof(ViewPortSizeBuffer) + 15) / 16 * 16;
       if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_ConstBuffer, nullptr, &Renderer.m_pViewPortSizeBuffer)))
          return hr;
+     
       SETDBGNAME_COM(Renderer.m_pViewPortSizeBuffer);
 
       d_ConstBuffer.Usage = D3D11_USAGE_DEFAULT;
@@ -280,16 +282,17 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
 HRESULT DeviceResource::ComputeCircleTexture(
     _In_ const ComPtr<ID3D11DeviceContext> &pContext,
-
+    _In_ const XMUINT3 &&threadGroupCount,
+    _In_ const XMUINT2 &&imageSize,
     _Out_ ID3D11Resource **ppTexture,
-    _Out_ ID3D11ShaderResourceView **ppTextureView,
-    const XMUINT3 &&threadGroupCount,
-    const XMUINT2 &&imageSize)
-
+    _Out_ ID3D11ShaderResourceView **ppTextureView)
 {
 
    if (!pContext)
       return E_NOINTERFACE;
+
+   if (imageSize.x == 0u || imageSize.y == 0u || threadGroupCount.x == 0u || threadGroupCount.y == 0u || threadGroupCount.z == 0u)
+      return ERROR_INVALID_PARAMETER;
 
    /** compute shader requirements:
     * RWTexture2D - FL 11.0
@@ -298,7 +301,8 @@ HRESULT DeviceResource::ComputeCircleTexture(
    if (m_pDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
    {
       return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
-   }
+   };
+
    static constexpr struct
    {
       DXGI_FORMAT dx{DXGI_FORMAT_R32_FLOAT};
@@ -315,11 +319,11 @@ HRESULT DeviceResource::ComputeCircleTexture(
    ComPtr<ID3D11ComputeShader> pComputeShader{};
    {
 
-#ifdef _DEBUG
-#include "../Shader/Debug/Compute.hpp"
-#else
+//#ifdef _DEBUG
+//#include "../Shader/Debug/Compute.hpp"
+//#else
 #include "../Shader/Release/Compute.hpp"
-#endif
+      //#endif
       if (H_FAIL(hr = m_pDevice->CreateComputeShader(ComputeByteCode, sizeof(ComputeByteCode), nullptr, &pComputeShader)))
          return hr;
    }
@@ -344,7 +348,7 @@ HRESULT DeviceResource::ComputeCircleTexture(
 
       if (H_FAIL(hr = m_pDevice->CreateTexture2D(&desc, nullptr, &pTexture)))
          return hr;
-      pTexture->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("circleTexture") - 1, "circleTexture");
+      DBG_ONLY(pTexture->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("circleTexture") - 1, "circleTexture"));
    }
    /**
     * Create Unordered Access View of  texture we write to

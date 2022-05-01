@@ -42,8 +42,8 @@ protected:
 
     std::unique_ptr<DeviceResource> m_pDeviceResource{};
 
-    static constexpr UINT s_DrawVertexCount{6}; // 6 point draw a quad
-    static constexpr UINT s_DrawInstanceCount{105u};
+    static constexpr UINT s_DrawVertexCount{6}; // 6 points to draw a quad
+    static constexpr UINT s_DrawInstanceCount{4u};
     D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
     Timer::CTimer Timer{};

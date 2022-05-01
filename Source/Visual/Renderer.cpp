@@ -37,8 +37,8 @@ void Renderer::SetPipeLine() const noexcept
 void Renderer::UpdateFrameBuffer() noexcept
 {
 
+    // Update Timer
     FrameBuffer constantBuffer{Timer.Count<long>()};
-
     m_pContext->UpdateSubresource(
         m_pFrameBuffer.Get(),
         0, nullptr, &constantBuffer, 0, 0);
@@ -52,10 +52,13 @@ void Renderer::UpdateFrameBuffer() noexcept
 void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcept
 {
 
+    Log<Console>::Write(L"entered");
     ViewPortSizeBuffer ViewPortSize{{Width, Height}};
     m_pContext->UpdateSubresource(
         m_pViewPortSizeBuffer.Get(),
         0, nullptr, &ViewPortSize, 0, 0);
+
+    Log<Console>::Write(L"passed");
 };
 
 void Renderer::Draw() const noexcept

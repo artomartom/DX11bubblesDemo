@@ -19,7 +19,7 @@ public:
   {
     DBG_ONLY(_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF));
 
-    peekRun(Window::CCoreWindow<App>{hinst, {50, 50, 1700, 1000}});
+    peekRun(Window::CoreWindow<App>{hinst, {50, 50, 1700, 1000}});
     MessageBeep(5);
     return 0;
   };
@@ -45,7 +45,7 @@ public:
   void OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
   {
     HRESULT hr{};
-
+     
     if (H_OK(hr = DeviceResource::TestDeviceSupport()))
     {
 
@@ -74,8 +74,8 @@ public:
 
     switch (args.m_Type)
     {
-      CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); return; });
-      CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); return; });
+      // CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); return; });
+      // CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); return; });
     }
     if (m_ViewPort.Width == NewWidth && m_ViewPort.Height == NewHeight)
     {
@@ -147,5 +147,5 @@ private:
 };
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-int wWinMain(HINSTANCE hinst, HINSTANCE, LPWSTR, int) { return Invoke(&App::AppEntry, hinst); };
+int wWinMain(_In_ HINSTANCE hinst, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) { return Invoke(&App::AppEntry, hinst); };
 int main() { return Invoke(&App::AppEntry, (HINSTANCE)&__ImageBase); };
