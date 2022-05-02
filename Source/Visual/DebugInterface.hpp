@@ -91,23 +91,26 @@ public:
             m_pGIInfoQueue->GetMessage(DXGI_DEBUG_ALL, m_MessagePointer, pMessage, &messageLength);
             m_MessagePointer++;
 
+            GUI_ONLY(static constexpr Writer::Out OutType{File});
+            CONSOLE_ONLY(static constexpr Writer::Out OutType{Console});
+
             void (*pSender)(const char *const &);
             switch (pMessage->Severity)
             {
             case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION:
-                pSender = &Log<File>::Write;
+                pSender = &Log<OutType>::Write;
                 break;
             case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR:
-                pSender = &Error<File>::Write;
+                pSender = &Error<OutType>::Write;
                 break;
             case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING:
-                pSender = &Warning<File>::Write;
+                pSender = &Warning<OutType>::Write;
                 break;
             case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO:
-                pSender = &Log<File>::Write;
+                pSender = &Log<OutType>::Write;
                 break;
             case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE:
-                pSender = &Log<File>::Write;
+                pSender = &Log<OutType>::Write;
                 break;
             }
 

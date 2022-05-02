@@ -1,6 +1,6 @@
 #include "Func.hlsl"
 
-//  compute
+//  circle
 RWTexture2D<float> tex : register(u0);
  
 #define circleSizex 280
@@ -10,7 +10,7 @@ RWTexture2D<float> tex : register(u0);
 #define edge 0.96f
 #define edgeWidth (1.f - edge)
 
-[numthreads(circleSizex, 1, 1)] void mainCircle(
+[numthreads(circleSizex, 1, 1)] void CircleCompute(
       uint3 dispatchThreadId
     : SV_DispatchThreadID     )
 {
@@ -35,7 +35,7 @@ RWTexture2D<float> tex : register(u0);
         return;
     };
 }
-// end compute
+// end circle
 
 
 
@@ -44,18 +44,16 @@ cbuffer ViewPortBuffer : register(b0){    float2 size ;   };
 //   st - time since application start   st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
 cbuffer FrameBuffer : register(b1){    float4 FrameTime;};   
 
-struct VertexIn
+struct InstData
 {   
     // no vertex data  (quadPos is used )
 	//per instance data 
-    float2 trans: TRANSLATION;  // 8
-    float  size: SIZE;  //  4
-    float  period: PERIOD;  //  4
-    uint   color: COLOR;  //  4
-    float startTime: STARTTIME;  //  4
+    float2 trans; // 8
+    float  size; //  4
+    float  period; //  4
+    uint   color; //  4
+    float  startTime; //  4
 };
-
- 
 
 struct VertexOut
 {
@@ -84,8 +82,27 @@ static float4 colorBuffer[6] =
 {0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f},
 };
 
-VertexOut mainVertex(VertexIn In,   uint VertID : SV_VertexID)
+//Instance buffer view for compute shader
+RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
+
+[numthreads(1, 1, 1)] void mainCompute(
+      uint3 dispatchThreadId
+    : SV_DispatchThreadID     )
 {
+    //test
+   ComputeInstancies[0].size=1.0f;
+   ComputeInstancies[0].color=2;
+   ComputeInstancies[0].period =4000;
+    
+};
+
+//Instance buffer view for vertex shader
+StructuredBuffer<InstData> VertexInstancies : register(t0);
+
+VertexOut mainVertex(    uint VertID : SV_VertexID ,  uint InstID :SV_InstanceID    )
+{
+    
+    InstData In=VertexInstancies[InstID];
 
     float2 pos = quadPos[VertID];
     VertexOut VertexOut;

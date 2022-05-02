@@ -5,7 +5,6 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/App.cpp
   ${PROJECT_SOURCE_DIR}/DX11bubblesDemo.exe.manifest
   ${PROJECT_SOURCE_DIR}/Visual/DeviceResource.cpp
   ${PROJECT_SOURCE_DIR}/Visual/Renderer.cpp
-  ${PROJECT_SOURCE_DIR}/Visual/Instance.cpp
   
 )
 

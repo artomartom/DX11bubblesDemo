@@ -45,7 +45,7 @@ public:
   void OnCreate(_In_ const ::Window::CreationArgs &args) noexcept
   {
     HRESULT hr{};
-     
+
     if (H_OK(hr = DeviceResource::TestDeviceSupport()))
     {
 
@@ -53,6 +53,7 @@ public:
       m_pDeviceResource = std::make_unique<DeviceResource>(*this, &hr);
       if (H_OK(hr))
       {
+        // CreateSizeDependentDeviceResources is not called from here because of OnSizeChanged message being send automatically  after OnCreate's success
         if (H_OK(hr = m_pDeviceResource->CreateDeviceResources(*this)))
         {
           Renderer::SetPipeLine();
@@ -62,6 +63,7 @@ public:
     };
     DBG_ONLY(
         {
+          Log<Console>::Write(L"Pulling Debug Messages before closing...");
           m_pDeviceResource->PullDebugMessage();
         });
     m_ShouldClose = true;
@@ -96,7 +98,7 @@ public:
 
     if (m_ShouldDraw && !m_ShouldClose)
     {
-      UpdateFrameBuffer();
+      UpdateDrawData();
       Renderer::Draw();
       /**
        *   The first argument instructs DXGI to block until VSync, putting the application

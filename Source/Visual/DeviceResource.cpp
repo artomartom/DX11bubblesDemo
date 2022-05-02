@@ -138,36 +138,35 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       return hr;
 
    /**
+    *    Create Compute Shader
+    */
+   {
+//#ifdef _DEBUG
+//#include "../Shader/Debug/CSmain.hpp"
+//#else
+#include "../Shader/Release/CSmain.hpp"
+      //#endif
+
+      if (H_FAIL(hr = m_pDevice->CreateComputeShader(CSByteCode, sizeof(CSByteCode), nullptr, &Renderer.m_pComputeShader)))
+         return hr;
+      SETDBGNAME_COM(Renderer.m_pComputeShader);
+   };
+
+   /**
     *    Create Vertex Shader
     */
    {
 
 //#ifdef _DEBUG
-//#include "../Shader/Debug/Vertex.hpp"
+//#include "../Shader/Debug/VSmain.hpp"
 //#else
-#include "../Shader/Release/Vertex.hpp"
+#include "../Shader/Release/VSmain.hpp"
       //#endif
 
-      const D3D11_INPUT_ELEMENT_DESC InputElementDescs[]{
-          {"TRANSLATION", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-          {"SIZE", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-          {"PERIOD", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-          {"COLOR", 0, DXGI_FORMAT_R32_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-          {"STARTTIME", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-      };
-
       if (H_FAIL(hr = m_pDevice->CreateVertexShader(
-                     VertexByteCode, sizeof(VertexByteCode), nullptr, &Renderer.m_pVertexShader)))
+                     VSByteCode, sizeof(VSByteCode), nullptr, &Renderer.m_pVertexShader)))
          return hr;
       SETDBGNAME_COM(Renderer.m_pVertexShader);
-      if (H_FAIL(hr = m_pDevice->CreateInputLayout(
-                     InputElementDescs,
-                     _countof(InputElementDescs),
-                     VertexByteCode, sizeof(VertexByteCode),
-                     &Renderer.m_pInputLayout)))
-         return hr;
-      SETDBGNAME_COM(Renderer.m_pInputLayout);
    };
 
    /**
@@ -175,33 +174,69 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     */
    {
 //#ifdef _DEBUG
-//#include "../Shader/Debug/Pixel.hpp"
+//#include "../Shader/Debug/PSmain.hpp"
 //#else
-#include "../Shader/Release/Pixel.hpp"
+#include "../Shader/Release/PSmain.hpp"
       //#endif
-      if (H_FAIL(hr = m_pDevice->CreatePixelShader(PixelByteCode, sizeof(PixelByteCode), nullptr, &Renderer.m_pPixelShader)))
+      if (H_FAIL(hr = m_pDevice->CreatePixelShader(PSByteCode, sizeof(PSByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
       SETDBGNAME_COM(Renderer.m_pPixelShader);
    };
 
    D3D11_BUFFER_DESC d_VertexBuffer{};
-   D3D11_SUBRESOURCE_DATA d_VertexData{};
 
    /**
-    *     Create  Instance  Vertex  Buffer
+    *  Create instance structured buffer containing data for each circle it's going to be initialized on GPU,
+    *  so we don't use any data when creating the buffer. We also don't store point to the buffer itself, cause it
+    *  is going to be bound as a structured buffer to vertex shader stage and compute shader, and once both SRV and
+    *  UAV this buffer are created pointer to ID3D11Buffer can be released.
     */
    {
 
+      ComPtr<ID3D11Buffer> pInstanceBuffer{};
       d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.s_DrawInstanceCount;
       d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
-      d_VertexBuffer.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+      d_VertexBuffer.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
       d_VertexBuffer.StructureByteStride = sizeof(Instance);
+      d_VertexBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 
-      d_VertexData.pSysMem = &Renderer.m_Instancies[0];
-
-      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, &d_VertexData, &Renderer.m_pInstanceVertexBuffer)))
+      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, nullptr, &pInstanceBuffer)))
+      {
          return hr;
-      SETDBGNAME_COM(Renderer.m_pInstanceVertexBuffer);
+      };
+      SETDBGNAME_COM(pInstanceBuffer);
+
+      /**
+       *     Create UAV of structured Instance Buffer for compute shader
+       */
+      {
+
+         D3D11_UNORDERED_ACCESS_VIEW_DESC descUAV{};
+         descUAV.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+         descUAV.Format = DXGI_FORMAT_UNKNOWN;
+
+         descUAV.Buffer.FirstElement = 0;
+         descUAV.Buffer.NumElements = Renderer.s_DrawInstanceCount;
+         descUAV.Buffer.Flags = 0;
+         hr = m_pDevice->CreateUnorderedAccessView(pInstanceBuffer.Get(), &descUAV, &Renderer.m_InstBufferUAV);
+         if (H_FAIL(hr))
+            return hr;
+      };
+      /**
+       *     Create SRV of structured Instance Buffer for vertex shader
+       */
+      {
+         D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+         SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+         SRVDesc.Buffer.ElementOffset = 0;
+         SRVDesc.Buffer.ElementWidth = sizeof(Instance);
+         SRVDesc.Buffer.FirstElement = 0;
+         SRVDesc.Buffer.NumElements = Renderer.s_DrawInstanceCount;
+
+         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(pInstanceBuffer.Get(), &SRVDesc, &Renderer.m_InstBufferSRV)))
+            return hr;
+      };
    };
    /**
     *     Sampler
@@ -319,11 +354,11 @@ HRESULT DeviceResource::ComputeCircleTexture(
    {
 
 //#ifdef _DEBUG
-//#include "../Shader/Debug/Compute.hpp"
+//#include "../Shader/Debug/CSCircle.hpp"
 //#else
-#include "../Shader/Release/Compute.hpp"
+#include "../Shader/Release/CSCircle.hpp"
       //#endif
-      if (H_FAIL(hr = m_pDevice->CreateComputeShader(ComputeByteCode, sizeof(ComputeByteCode), nullptr, &pComputeShader)))
+      if (H_FAIL(hr = m_pDevice->CreateComputeShader(CSCircleByteCode, sizeof(CSCircleByteCode), nullptr, &pComputeShader)))
          return hr;
    }
 
