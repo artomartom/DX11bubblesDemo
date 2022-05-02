@@ -27,6 +27,8 @@ void Renderer::SetPipeLine() const noexcept
     m_pContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
     m_pContext->VSSetConstantBuffers(0, _countof(constBuffers), constBuffers);
 
+    m_pContext->CSSetConstantBuffers(0, _countof(constBuffers), constBuffers);
+
     m_pContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
     m_pContext->PSSetSamplers(0u, 1u, m_pSampler.GetAddressOf());
     m_pContext->PSSetShaderResources(0u, 1u, m_pCircleTexView.GetAddressOf());
@@ -51,6 +53,7 @@ void Renderer::UpdateDrawData() noexcept
 
         m_pContext->CSSetShader(m_pComputeShader.Get(), nullptr, 0);
         m_pContext->CSSetUnorderedAccessViews(0, 1, m_InstBufferUAV.GetAddressOf(), nullptr);
+
         m_pContext->Dispatch(1, 1, 1);
         m_pContext->CSSetUnorderedAccessViews(0, 1, ppUAVnullptr, nullptr);
     }

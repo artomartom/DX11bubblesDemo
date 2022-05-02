@@ -6,11 +6,9 @@
 
 struct Instance
 {
-    ::DirectX::XMFLOAT2 TRANSLATION{};
-    float SIZE{};
-    float PERIOD{};
-    ::UINT COLOR{};
-    float STARTTIME{};
+    DirectX::XMFLOAT2 pos{};
+    float size{};
+    UINT color{};
 };
 
 struct ViewPortSizeBuffer
@@ -20,21 +18,14 @@ struct ViewPortSizeBuffer
 
 struct FrameBuffer
 {
-    explicit FrameBuffer(long long t)
-        : Time{t / 20., t, t / 1000, t % 1000} {/* Log<File>::Write(Time.x,Time.y,Time.z,Time.w);*/};
-
-    ::DirectX::XMFLOAT4 Time{};
-};
-
-struct Vertex
-{
-    ::DirectX::XMFLOAT2 POSITION{};
+    explicit FrameBuffer(long long st)
+        : t{st, st / 1000.f, (st % (1000 * 60)) / 1000.f, st % 1000} {/* Log<Console>::Write(L"\r", t.x, t.y, t.z, t.w); */};
+    ::DirectX::XMFLOAT4 t{};
 };
 
 class Renderer
 {
     friend class DeviceResource;
-    friend struct Instance;
 
     const ::Microsoft::WRL::ComPtr<ID3D11DeviceContext> &GetContext() const { return m_pContext; };
     const ::Microsoft::WRL::ComPtr<ID3D11RenderTargetView> &GetRenderTargetView() const { return m_pRTV; };

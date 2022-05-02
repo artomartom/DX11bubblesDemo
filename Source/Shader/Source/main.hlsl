@@ -37,30 +37,20 @@ RWTexture2D<float> tex : register(u0);
 }
 // end circle
 
+cbuffer ViewPortBuffer : register(b0){ float2 viewPortSize; };
 
-
-cbuffer ViewPortBuffer : register(b0){    float2 size ;   };
-
-//   st - time since application start   st / 20., st, st / 1000, st % 1000 // st milisec from start (1.f = 1 milisec)
-cbuffer FrameBuffer : register(b1){    float4 FrameTime;};   
+//    t - time since application start 
+//  t milisec from start (1.f = 1 milisec)
+cbuffer FrameBuffer : register(b1){ float4 FrameTime; }; //   ( t, t / 1000.f, (t % (1000 * 60 * 10)) / 1000.f, t % 1000)
 
 struct InstData
 {   
     // no vertex data  (quadPos is used )
 	//per instance data 
-    float2 trans; // 8
+    float2 pos; // 8
     float  size; //  4
-    float  period; //  4
     uint   color; //  4
-    float  startTime; //  4
 };
-
-struct VertexOut
-{
-    float4 pos : SV_Position;
-    uint  color : COLOR0;
-	float2 uv : TEXCOORD0;
-}; 
 
 static float2 quadPos[6] = 
 {
@@ -90,49 +80,42 @@ RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
     : SV_DispatchThreadID     )
 {
     //test
-   ComputeInstancies[0].size=1.0f;
-   ComputeInstancies[0].color=2;
-   ComputeInstancies[0].period =4000;
+    ComputeInstancies[0].size=  0.1f ;
+    ComputeInstancies[0].color=5;
+    ComputeInstancies[0].pos =float2(0.0f,0.0f);
+   
     
 };
 
 //Instance buffer view for vertex shader
 StructuredBuffer<InstData> VertexInstancies : register(t0);
 
-VertexOut mainVertex(    uint VertID : SV_VertexID ,  uint InstID :SV_InstanceID    )
+struct VertexOut
+{
+    float4 pos : SV_Position;
+    uint   color : COLOR0;
+	float2 uv : TEXCOORD0;
+}; 
+
+VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
 {
     
     InstData In=VertexInstancies[InstID];
-
-    float2 pos = quadPos[VertID];
-    VertexOut VertexOut;
      
-    VertexOut.uv = (pos+1.f )/2.f;
-    VertexOut.color=In.color;
-    pos.x/= size.x/size.y ; 
-     
-    float  scalar= 0;
-    float FromStart=FrameTime.y-In.startTime;
-     
-    if(FromStart < In.period )  // if the period is not over 
-    {
-     
-        if(FromStart > In.period/2.f) // if it is second half of period
-        scalar =1- FromStart /In.period ;  //scale the circle down
-        else
-        scalar =FromStart /In.period ;  // scale the circle up
-    }; 
-        
-    pos*=In.size   *scalar;
-    pos +=In.trans ;
-    VertexOut.pos= float4(    pos ,0.0f,1.0f);
-    return VertexOut;
+    VertexOut Out;
+    Out.pos= float4(quadPos[VertID], 0.0f, 1.0f);
+    Out.uv = (Out.pos.xy+1.f)/2.f;
+    Out.pos.x/= viewPortSize.x/viewPortSize.y ; 
+    Out.pos.xy*=In.size;
+    Out.pos.xy +=In.pos;
+    Out.color=In.color;
+    return  Out;
 };
 
-Texture2D <float>     CircleTex   :TEXTURE    :register(t0);
-SamplerState  Sampler  :SAMPLER  :register(s0);
+Texture2D <float>  CircleTex     :TEXTURE     :register(t0);
+SamplerState       Sampler       :SAMPLER     :register(s0);
  
-float4   mainPixel(VertexOut In) : SV_Target
+float4 mainPixel(VertexOut In) : SV_Target
 {
     return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv )  ) ;  
     
