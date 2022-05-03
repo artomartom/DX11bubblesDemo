@@ -75,7 +75,9 @@ void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcep
 
 void Renderer::Draw() const noexcept
 {
-    static constexpr DirectX::XMFLOAT4 RTVClearColor{0x12 / 256.f, 0x0e / 256.f, 0x11 / 256.f, 0.99f};
+
+    //  static constexpr DirectX::XMFLOAT4 RTVClearColor{0x83 / 256.f, 0x99 / 256.f, 0xCE / 256.f, 0.99f};
+    static constexpr DirectX::XMFLOAT4 RTVClearColor{0.0f, 0.0f, 0.0f, 0.99f};
 
     m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), &RTVClearColor.x);
 

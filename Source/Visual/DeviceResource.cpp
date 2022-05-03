@@ -141,11 +141,11 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     *    Create Compute Shader
     */
    {
-//#ifdef _DEBUG
-//#include "../Shader/Debug/CSmain.hpp"
-//#else
+#ifdef _DEBUG
+#include "../Shader/Debug/CSmain.hpp"
+#else
 #include "../Shader/Release/CSmain.hpp"
-      //#endif
+#endif
 
       if (H_FAIL(hr = m_pDevice->CreateComputeShader(CSByteCode, sizeof(CSByteCode), nullptr, &Renderer.m_pComputeShader)))
          return hr;
@@ -157,11 +157,11 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     */
    {
 
-//#ifdef _DEBUG
-//#include "../Shader/Debug/VSmain.hpp"
-//#else
+#ifdef _DEBUG
+#include "../Shader/Debug/VSmain.hpp"
+#else
 #include "../Shader/Release/VSmain.hpp"
-      //#endif
+#endif
 
       if (H_FAIL(hr = m_pDevice->CreateVertexShader(
                      VSByteCode, sizeof(VSByteCode), nullptr, &Renderer.m_pVertexShader)))
@@ -173,11 +173,11 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     *    Pixel Shader
     */
    {
-//#ifdef _DEBUG
-//#include "../Shader/Debug/PSmain.hpp"
-//#else
+#ifdef _DEBUG
+#include "../Shader/Debug/PSmain.hpp"
+#else
 #include "../Shader/Release/PSmain.hpp"
-      //#endif
+#endif
       if (H_FAIL(hr = m_pDevice->CreatePixelShader(PSByteCode, sizeof(PSByteCode), nullptr, &Renderer.m_pPixelShader)))
          return hr;
       SETDBGNAME_COM(Renderer.m_pPixelShader);
@@ -337,12 +337,12 @@ HRESULT DeviceResource::ComputeCircleTexture(
       return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;
    };
 
+   using pixelT = DirectX::XMFLOAT4;
    static constexpr struct
    {
-      DXGI_FORMAT dx{DXGI_FORMAT_R32_FLOAT};
-      UINT bpp{32};
+      DXGI_FORMAT dx{DXGI_FORMAT_R32G32B32A32_FLOAT};
+      UINT bpp{sizeof(pixelT) * 8};
    } circleFormat{};
-   using pixelT = float;
 
    HRESULT hr{};
    ComPtr<ID3D11Texture2D> pTexture{};
@@ -353,11 +353,11 @@ HRESULT DeviceResource::ComputeCircleTexture(
    ComPtr<ID3D11ComputeShader> pComputeShader{};
    {
 
-//#ifdef _DEBUG
-//#include "../Shader/Debug/CSCircle.hpp"
-//#else
+#ifdef _DEBUG
+#include "../Shader/Debug/CSCircle.hpp"
+#else
 #include "../Shader/Release/CSCircle.hpp"
-      //#endif
+#endif
       if (H_FAIL(hr = m_pDevice->CreateComputeShader(CSCircleByteCode, sizeof(CSCircleByteCode), nullptr, &pComputeShader)))
          return hr;
    }
@@ -392,7 +392,6 @@ HRESULT DeviceResource::ComputeCircleTexture(
       descUAV.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
       descUAV.Buffer.FirstElement = 0;
       descUAV.Format = circleFormat.dx;
-
       if (H_FAIL(hr = m_pDevice->CreateUnorderedAccessView(pTexture.Get(), &descUAV, &pTextureUAV)))
          return hr;
    }

@@ -1,38 +1,37 @@
 #include "Func.hlsl"
 
 //  circle
-RWTexture2D<float> tex : register(u0);
- 
-#define circleSizex 280
-#define circleSizey 280
-#define maxIntensity 0.5f
-#define maxDistance 1.41421
-#define edge 0.96f
-#define edgeWidth (1.f - edge)
 
-[numthreads(circleSizex, 1, 1)] void CircleCompute(
+#define  circleTexFormat float4
+RWTexture2D<circleTexFormat> tex : register(u0);
+ 
+static const uint2  circleSize =uint2( 280, 280);
+static const float  maxIntensity= 0.5f;
+static const float  maxDistance= 1.41421;
+static const float  edge= 0.96f;
+static const float  edgeWidth= (1.f - edge);
+//                                                                                                                          CircleCompute
+[numthreads(circleSize.x, 1, 1)] void CircleCompute( 
       uint3 dispatchThreadId
     : SV_DispatchThreadID     )
 {
-    if (dispatchThreadId.x >= circleSizex || dispatchThreadId.y >= circleSizey)
+    if (dispatchThreadId.x >= circleSize.x || dispatchThreadId.y >= circleSize.y)
         return;
 
-    float2 Pos = float2((float(dispatchThreadId.x) / circleSizex) * 2.f - 1.f,
-                        (float(dispatchThreadId.y) / circleSizey) * 2.f - 1.f);
+    float2 Pos = float2((float(dispatchThreadId.x) / circleSize.x) * 2.f - 1.f,
+                        (float(dispatchThreadId.y) / circleSize.y) * 2.f - 1.f);
 
     float distance = length(Pos);
 
     if (distance > edge + edgeWidth)
     {
-        tex[dispatchThreadId.xy] = 0.f;
-        return;
+        tex[dispatchThreadId.xy] = float4(0.f,0.f,0.f,0.f);
     }
     else
     {
+        float l = smoothstep( edge - edgeWidth , edge  ,distance )-smoothstep( edge, edge + edgeWidth ,distance );
 
-        distance = (distance < edge) ? distance : (1.0f - (distance - edge) / edgeWidth);
-        tex[dispatchThreadId.xy] = maxIntensity * distance;
-        return;
+        tex[dispatchThreadId.xy] = float4(1.0f,1.0f,1.0f, l);
     };
 }
 // end circle
@@ -74,15 +73,15 @@ static float4 colorBuffer[6] =
 
 //Instance buffer view for compute shader
 RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
-
+//                                                                                                                          mainCompute
 [numthreads(1, 1, 1)] void mainCompute(
       uint3 dispatchThreadId
     : SV_DispatchThreadID     )
 {
     //test
-    ComputeInstancies[0].size=  0.1f ;
-    ComputeInstancies[0].color=5;
-    ComputeInstancies[0].pos =float2(0.0f,0.0f);
+    ComputeInstancies[0].size = 1.0f ;
+    ComputeInstancies[0].color = 5;
+    ComputeInstancies[0].pos = float2(0.0f,0.0f);
    
     
 };
@@ -96,7 +95,7 @@ struct VertexOut
     uint   color : COLOR0;
 	float2 uv : TEXCOORD0;
 }; 
-
+//                                                                                                                          mainVertex
 VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
 {
     
@@ -112,12 +111,14 @@ VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
     return  Out;
 };
 
-Texture2D <float>  CircleTex     :TEXTURE     :register(t0);
+Texture2D <circleTexFormat>  CircleTex     :TEXTURE     :register(t0);
 SamplerState       Sampler       :SAMPLER     :register(s0);
- 
+//                                                                                                                          mainPixel
 float4 mainPixel(VertexOut In) : SV_Target
 {
-    return    float4( colorBuffer[In.color].xyz,CircleTex.Sample( Sampler, In.uv )  ) ;  
+    float4 tex = CircleTex.Sample( Sampler, In.uv ) ;
+    
+    return    float4( lerp(colorBuffer[In.color].xyz,tex.rgb ,tex.a), tex.a) ;  
     
 };
 
