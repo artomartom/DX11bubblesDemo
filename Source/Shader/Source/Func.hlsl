@@ -4,6 +4,20 @@ float InverseLerp (float a,float b,float v   )
 return (v-a)/(b-a);
 };
 
+
+float circle(float2 pos ,float radius   )
+{
+  float distance=length(pos);
+  return 1.0 - smoothstep(0.0, radius, distance);
+}
+  
+float ring(float2 pos ,float InnerEdge ,float OuterEdge )
+{
+  float edge= lerp(InnerEdge,OuterEdge,0.5);
+  float distance = length(pos);
+  return  smoothstep(InnerEdge, edge,distance )-smoothstep( edge, OuterEdge ,distance);
+}
+
 //   
 float smootherstep (float a0, float a1, float w) 
 {

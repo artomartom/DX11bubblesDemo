@@ -5,87 +5,42 @@
 #define  circleTexFormat float4
 RWTexture2D<circleTexFormat> tex : register(u0);
  
-static const uint2  circleSize =uint2( 280, 280);
-static const float  maxIntensity= 0.2f;
-static const float  maxDistance= 1.41421;
-static const float  edge= 0.96f;
-static const float  outerEdgeWidth= 1.0f - edge;
-static const float  InnerEdgeWidth= edge - 0.83f;
-static const float3  ColorA= float3(0.941176534f, 1.000000000f, 1.000000000f );
-static const float3  ColorB= float3(0.545098066f, 0.000000000f, 0.000000000f );
-static const float3  ColorC= float3(0.862745166f, 0.862745166f, 0.862745166f );
-
-/*
-
-float circle(vec2 pos ,float radius   )
+struct Circle 
 {
-    float distance=length(pos);
-    return 1.0 - smoothstep(0.0, radius, distance);
-}
-  
-float ring(vec2 pos ,float InnerEdge ,float OuterEdge )
+    uint2  size ;
+    float  maxIntensity ;
+    float  outerEdge ;
+    float  InnerEdge ;
+};
+static const Circle crcl  =
 {
-float edge= mix(InnerEdge,OuterEdge,0.5);
-float distance = length(pos);
-return  smoothstep(InnerEdge, edge,distance )-smoothstep( edge, OuterEdge ,distance);
-}
-
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
-{
-    vec2 uv = fragCoord/iResolution.xy;
-    vec2 pos =(uv*2.0-1.0 )*vec2(iResolution.x/iResolution.y,1.0) ;
-    
-    //_____
-    vec2 blick1 = vec2(0.2,.4);  
-    vec2 blick2 = vec2(-0.61,-.4);
-  
-   
-    float intens = ring(pos, 0.77,0.97);
-    float innerring = ring(pos, .1,0.97);
-    float outerring = ring(vec2(1.7,.7)*pos-vec2(0.05,-0.05), -1.,0.95);
-    intens+=smoothstep(0.78,1., innerring-outerring);
-    intens+=0.7*circle(pos-blick1,0.1 );
-    intens+=0.7*circle(pos-blick2,0.2  );
-    fragColor = vec4(vec3(intens), 1.0);
-     
-       
-} 
-*/
-
+ float2( 280.f, 280.f),
+ 0.2f,
+ 0.96f,
+ 0.93f,
+};
 
 //                                                                                                                          CircleCompute
-[numthreads(circleSize.x, 1, 1)] void CircleCompute( 
+[numthreads( crcl.size.x, 1, 1)] void CircleCompute( 
       uint3 dispatchThreadId
     : SV_DispatchThreadID     )
 {
-    if (dispatchThreadId.x >= circleSize.x || dispatchThreadId.y >= circleSize.y)
+    if (dispatchThreadId.x >= crcl.size.x || dispatchThreadId.y >= crcl.size.y)
         return;
+    float2 pos = float2(( float2(dispatchThreadId.xy) / crcl.size) * 2.f - 1.f );                        
 
-    float2 pos = float2((float(dispatchThreadId.x) / circleSize.x) * 2.f - 1.f,
-                        (float(dispatchThreadId.y) / circleSize.y) * 2.f - 1.f);
-
-    float distance = length(pos);
-
-    if (distance > edge + outerEdgeWidth)
-    {
-        tex[dispatchThreadId.xy] = float4(0.f,0.f,0.f,0.f);
-    }
-    else
-    {
-
-        //  pct = pow(distance(st,vec2(0.460,0.450)),distance(st,vec2(0.290,0.650)));  
-        //float f = abs(sin(a*234.5))*0.55+.3;
-
-        //float intens =  smoothstep( edge - InnerEdgeWidth , edge  ,distance )-smoothstep( edge , edge + outerEdgeWidth ,distance );
-        float2 dir= normalize(  pos);
-        float intens =  smoothstep( edge - InnerEdgeWidth, edge, distance )-smoothstep( edge , edge + outerEdgeWidth ,distance );
-        intens -=(  distance* distance* distance* distance);
-      //  float3 col = ColorB* clamp(  -dir.y , dir.x  ,ColorA);
-      //  float blick =dot(pos,float2(-cos(0.785398163f),sin(0.785398163f)  ));
-        //col+=(lerp(0.9f,1.f, blick.x)-0.9f).x;  
-
-        tex[dispatchThreadId.xy] = float4(lerp(ColorB,ColorA,0.5f), maxIntensity*intens);
-    };
+    float2 blick1 = float2(0.2,.4);  
+    float2 blick2 = float2(-0.61,-.4);
+    float intens = ring(pos, 0.77,0.97);
+    float innerring = ring(pos, .1,0.97);
+    float outerring = ring(float2(1.7,.7)*pos-float2(0.05,-0.05), -1.,0.95);
+    intens+=3.*smoothstep(0.78,1., innerring-outerring);
+    intens+=8.*circle(pos-blick1,0.1 );
+    intens+=2.*circle(pos-blick2,0.2  );
+    float3  color = lerp(float3(0.6123,0.624,.9324), 1.0,.05)*intens;
+        
+    tex[dispatchThreadId.xy] = float4(color,  intens);
+ 
 }
 // end circle
 
@@ -132,7 +87,7 @@ RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
     : SV_DispatchThreadID     )
 {
     //test
-    ComputeInstancies[0].size = 1.0f ;
+    ComputeInstancies[0].size = .2f ;
     ComputeInstancies[0].color = 5;
     ComputeInstancies[0].pos = float2(0.0f,0.0f);
    
