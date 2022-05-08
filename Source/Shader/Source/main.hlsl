@@ -52,14 +52,43 @@ cbuffer ViewPortBuffer : register(b0){ float2 viewPortSize; };
 //  t milisec from start (1.f = 1 milisec)
 cbuffer FrameBuffer : register(b1){ float4 FrameTime; }; //   ( t, t / 1000.f, (t % (1000 * 60 * 10)) / 1000.f, t % 1000)
 
-struct InstData
+struct Instance
 {   
     // no vertex data  (quadPos is used )
 	//per instance data 
     float2 pos; // 8
     float  size; //  4
-    uint   color; //  4
 };
+
+struct InstComputeData
+{   
+    float2 direction; // 8
+    float2 pos; // 8
+};
+
+//Instance buffer view for compute shader
+RWStructuredBuffer<Instance> ComputeInst  : register(u0);
+RWStructuredBuffer<InstComputeData> ComputeData : register(u1);
+//                                                                                                                          mainCompute
+[numthreads(1, 1, 1)] void mainCompute(
+      uint3 dispatchThreadId
+    : SV_DispatchThreadID     )
+{
+     
+    //test
+    ComputeInst[dispatchThreadId.x].size =0.2f;
+    ComputeInst[dispatchThreadId.x].pos = ComputeData[ dispatchThreadId.x].pos;
+    
+};
+
+//Instance buffer view for vertex shader
+StructuredBuffer<Instance> VertexInstancies : register(t0);
+
+struct VertexOut
+{
+    float4 pos : SV_Position;
+	float2 uv : TEXCOORD0;
+}; 
 
 static float2 quadPos[6] = 
 {
@@ -70,35 +99,11 @@ static float2 quadPos[6] =
     {+1.f, -1.f},
     {-1.f, -1.f},
 };
-
-//Instance buffer view for compute shader
-RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
-//                                                                                                                          mainCompute
-[numthreads(1, 1, 1)] void mainCompute(
-      uint3 dispatchThreadId
-    : SV_DispatchThreadID     )
-{
-    //test
-    ComputeInstancies[0].size = .2f ;
-    ComputeInstancies[0].color = 5;
-    ComputeInstancies[0].pos = float2(0.0f,0.0f);
-    
-};
-
-//Instance buffer view for vertex shader
-StructuredBuffer<InstData> VertexInstancies : register(t0);
-
-struct VertexOut
-{
-    float4 pos : SV_Position;
-    uint   color : COLOR0;
-	float2 uv : TEXCOORD0;
-}; 
 //                                                                                                                          mainVertex
 VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
 {
     
-    InstData In=VertexInstancies[InstID];
+    Instance In=VertexInstancies[InstID];
      
     VertexOut Out;
     Out.pos= float4(quadPos[VertID], 0.0f, 1.0f);
@@ -106,7 +111,6 @@ VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
     Out.pos.x/= viewPortSize.x/viewPortSize.y ; 
     Out.pos.xy*=In.size;
     Out.pos.xy +=In.pos;
-    Out.color=In.color;
     return  Out;
 };
 

@@ -4,11 +4,16 @@
 #pragma once
 #include "../pch.hpp"
 
-struct Instance
+struct ComputeData
+{
+    DirectX::XMFLOAT2 Direction{};
+    DirectX::XMFLOAT2 Position{};
+};
+
+struct InstanceData
 {
     DirectX::XMFLOAT2 pos{};
     float size{};
-    UINT color{};
 };
 
 struct ViewPortSizeBuffer
@@ -58,8 +63,9 @@ protected:
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pViewPortSizeBuffer{}; // constant buffer:Changes On resizing
     ::Microsoft::WRL::ComPtr<ID3D11Buffer> m_pFrameBuffer{};        // constant buffer:changes every update
 
-    ::Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_InstBufferSRV{};
+    ::Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_ComputeBufferUAV{};
     ::Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_InstBufferUAV{};
+    ::Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_InstBufferSRV{};
 
     ::Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pCircleTexView{};
     ::Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSampler{};

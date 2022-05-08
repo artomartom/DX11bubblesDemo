@@ -19,7 +19,16 @@ public:
         : m_hDxgiDebugDLL{::LoadLibraryExW(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32)} {};
     HRESULT Init(const ::Microsoft::WRL::ComPtr<ID3D11Device> &pDevice) // Device is initialized at this point
     {
+        if (!pDevice)
+            return ERROR_NOINTERFACE;
+
         HRESULT hr{};
+
+        // m_pDevice attaches to it's device to make sure device get released last
+        ::Microsoft::WRL::ComPtr<ID3D11Device> s_pDevice{};
+        pDevice.CopyTo(&m_pDevice);
+        pDevice.CopyTo(&s_pDevice);
+
         // function pointer typedef of to retrieve debugging interface from dll
         typedef HRESULT(__stdcall * DXGIGetDebugInterface)(REFIID, void **);
 
@@ -128,17 +137,17 @@ public:
     virtual ~DebugInterface()
     {
 
-        if (m_pGIInfoQueue != nullptr)
-            DBG_ONLY(PullDebugMessage());
-        if (m_pSDKLayerDebug != nullptr)
-            m_pSDKLayerDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
-        if (m_pDebug != nullptr)
-            m_pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
-        if (m_hDxgiDebugDLL != 0)
+        if (m_pGIInfoQueue && m_pDevice)
+            PullDebugMessage();
+
+        Report();
+
+        if (m_hDxgiDebugDLL)
             ::FreeLibrary(m_hDxgiDebugDLL);
     };
 
 private:
+    ::Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice{};
     ::Microsoft::WRL::ComPtr<ID3D11Debug> m_pSDKLayerDebug{};
     ::Microsoft::WRL::ComPtr<IDXGIDebug> m_pDebug{};
     ::Microsoft::WRL::ComPtr<IDXGIInfoQueue> m_pGIInfoQueue{};

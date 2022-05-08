@@ -124,6 +124,69 @@ HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHan
    return S_OK;
 };
 
+HRESULT DeviceResource::CreateStructuredBuffer(
+    _In_ UINT elementCount, _In_ UINT elementSize,
+    _In_opt_ VOID *pData,
+    _COM_Outptr_opt_ ID3D11Buffer **ppBuffer,
+    _COM_Outptr_opt_ ID3D11UnorderedAccessView **ppUAV,
+    _COM_Outptr_opt_ ID3D11ShaderResourceView **ppSRV)
+{
+
+   if (!elementCount || !elementSize)
+      return ERROR_INVALID_PARAMETER;
+   HRESULT hr{};
+   D3D11_BUFFER_DESC d_Buffer{};
+
+   ComPtr<ID3D11Buffer> pBuffer{};
+   D3D11_SUBRESOURCE_DATA d_BufferData{pData, 0, 0};
+   d_Buffer.ByteWidth = elementSize * elementCount;
+   d_Buffer.Usage = D3D11_USAGE_DEFAULT;
+   d_Buffer.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+   d_Buffer.StructureByteStride = elementSize;
+   d_Buffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+
+   if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_Buffer, (pData != nullptr) ? &d_BufferData : nullptr, &pBuffer)))
+      return hr;
+
+   SETDBGNAME_COM(pBuffer);
+
+   if (ppUAV != nullptr)
+   {
+      D3D11_UNORDERED_ACCESS_VIEW_DESC descUAV{};
+      descUAV.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+      descUAV.Format = DXGI_FORMAT_UNKNOWN;
+
+      descUAV.Buffer.FirstElement = 0;
+      descUAV.Buffer.NumElements = elementCount;
+      descUAV.Buffer.Flags = 0;
+      if (H_FAIL(hr = m_pDevice->CreateUnorderedAccessView(pBuffer.Get(), &descUAV, ppUAV)))
+         return hr;
+      SETDBGNAME(*ppUAV);
+   }
+   if (ppSRV != nullptr)
+   {
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+      SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+      SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+      SRVDesc.Buffer.ElementOffset = 0;
+      SRVDesc.Buffer.ElementWidth = elementSize;
+      SRVDesc.Buffer.FirstElement = 0;
+      SRVDesc.Buffer.NumElements = elementCount;
+
+      if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(pBuffer.Get(), &SRVDesc, ppSRV)))
+         return hr;
+      SETDBGNAME(*ppSRV);
+   }
+
+   if (ppBuffer != nullptr)
+   {
+      *ppBuffer = pBuffer.Detach();
+   };
+
+   return hr;
+};
+
 HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 {
    HRESULT hr{};
@@ -183,61 +246,40 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       SETDBGNAME_COM(Renderer.m_pPixelShader);
    };
 
-   D3D11_BUFFER_DESC d_VertexBuffer{};
-
    /**
-    *  Create instance structured buffer containing data for each circle it's going to be initialized on GPU,
+    *  Create instance structured buffer containing data for each circle. it's going to be initialized on GPU,
     *  so we don't use any data when creating the buffer. We also don't store point to the buffer itself, cause it
     *  is going to be bound as a structured buffer to vertex shader stage and compute shader, and once both SRV and
     *  UAV this buffer are created pointer to ID3D11Buffer can be released.
     */
    {
 
-      ComPtr<ID3D11Buffer> pInstanceBuffer{};
-      d_VertexBuffer.ByteWidth = sizeof(Instance) * Renderer.s_DrawInstanceCount;
-      d_VertexBuffer.Usage = D3D11_USAGE_DEFAULT;
-      d_VertexBuffer.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-      d_VertexBuffer.StructureByteStride = sizeof(Instance);
-      d_VertexBuffer.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-
-      if (H_FAIL(hr = m_pDevice->CreateBuffer(&d_VertexBuffer, nullptr, &pInstanceBuffer)))
-      {
+      if (H_FAIL(hr = CreateStructuredBuffer(
+                     Renderer.s_DrawInstanceCount,
+                     sizeof(InstanceData),
+                     nullptr,                   // no initialization data, buffer is populated in compute shader
+                     nullptr,                   // don't need ID3D11buffer pointer
+                     &Renderer.m_InstBufferUAV, // Create UAV of structured Instance Buffer for compute shader
+                     &Renderer.m_InstBufferSRV  // Create SRV of structured Instance Buffer for vertex shader
+                     )))
          return hr;
-      };
-      SETDBGNAME_COM(pInstanceBuffer);
+   }
+   /**
+    * Create strucured buffer for data, private to Compute shader
+    */
+   {
 
-      /**
-       *     Create UAV of structured Instance Buffer for compute shader
-       */
-      {
+      ComputeData val[Renderer.s_DrawInstanceCount]{XMFLOAT2{.1f, .2f}, XMFLOAT2{.1f, .2f}};
 
-         D3D11_UNORDERED_ACCESS_VIEW_DESC descUAV{};
-         descUAV.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-         descUAV.Format = DXGI_FORMAT_UNKNOWN;
-
-         descUAV.Buffer.FirstElement = 0;
-         descUAV.Buffer.NumElements = Renderer.s_DrawInstanceCount;
-         descUAV.Buffer.Flags = 0;
-         hr = m_pDevice->CreateUnorderedAccessView(pInstanceBuffer.Get(), &descUAV, &Renderer.m_InstBufferUAV);
-         if (H_FAIL(hr))
-            return hr;
-      };
-      /**
-       *     Create SRV of structured Instance Buffer for vertex shader
-       */
-      {
-         D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-         SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-         SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-         SRVDesc.Buffer.ElementOffset = 0;
-         SRVDesc.Buffer.ElementWidth = sizeof(Instance);
-         SRVDesc.Buffer.FirstElement = 0;
-         SRVDesc.Buffer.NumElements = Renderer.s_DrawInstanceCount;
-
-         if (H_FAIL(hr = m_pDevice->CreateShaderResourceView(pInstanceBuffer.Get(), &SRVDesc, &Renderer.m_InstBufferSRV)))
-            return hr;
-      };
-   };
+      if (H_FAIL(hr = CreateStructuredBuffer(
+                     Renderer.s_DrawInstanceCount,
+                     sizeof(ComputeData),
+                     &val,
+                     nullptr, // don't need ID3D11buffer pointer
+                     &Renderer.m_ComputeBufferUAV,
+                     nullptr)))
+         return hr;
+   }
    /**
     *     Sampler
     */

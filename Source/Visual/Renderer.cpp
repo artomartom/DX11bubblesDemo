@@ -4,15 +4,11 @@
 #include "DeviceResource.hpp"
 
 Renderer::Renderer() noexcept {
-    // Instance::SeedStdRand();
-    // Instance::Index = 0;
+
 };
 
 void Renderer::SetPipeLine() const noexcept
 {
-    // UINT strides[]{sizeof(Vertex), sizeof(Instance)};
-    UINT strides[]{0u, 0u};
-    UINT offsets[]{0u, 0u};
 
     ID3D11Buffer *buffers[]{nullptr,  // no vertex buffer
                             nullptr}; // no instance buffer
@@ -35,6 +31,15 @@ void Renderer::SetPipeLine() const noexcept
     m_pContext->PSSetConstantBuffers(0, _countof(constBuffers), constBuffers);
 };
 
+void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcept
+{
+
+    ViewPortSizeBuffer ViewPortSize{{Width, Height}};
+    m_pContext->UpdateSubresource(
+        m_pViewPortSizeBuffer.Get(),
+        0, nullptr, &ViewPortSize, 0, 0);
+};
+
 void Renderer::UpdateDrawData() noexcept
 {
 
@@ -47,36 +52,25 @@ void Renderer::UpdateDrawData() noexcept
     /** Start computation
      */
     {
+        ID3D11UnorderedAccessView *ppUAVs[2]{m_InstBufferUAV.Get(), m_ComputeBufferUAV.Get()};
+        ID3D11UnorderedAccessView *ppUAVnullptr[2] = {nullptr, nullptr};
+
+        // unbind srv to buffer we want to write to
         ID3D11ShaderResourceView *ppSRVnullptr[1] = {nullptr};
-        ID3D11UnorderedAccessView *ppUAVnullptr[1] = {nullptr};
-        m_pContext->VSSetShaderResources(0, 1u, ppSRVnullptr);
+        m_pContext->VSSetShaderResources(0, _countof(ppSRVnullptr), ppSRVnullptr);
 
         m_pContext->CSSetShader(m_pComputeShader.Get(), nullptr, 0);
-        m_pContext->CSSetUnorderedAccessViews(0, 1, m_InstBufferUAV.GetAddressOf(), nullptr);
+        m_pContext->CSSetUnorderedAccessViews(0, _countof(ppUAVs), ppUAVs, nullptr);
 
         m_pContext->Dispatch(1, 1, 1);
-        m_pContext->CSSetUnorderedAccessViews(0, 1, ppUAVnullptr, nullptr);
+
+        // Unbind uav to buffer after CS is done, we will set srv to that buffer in  draw method
+        m_pContext->CSSetUnorderedAccessViews(0, _countof(ppUAVnullptr), ppUAVnullptr, nullptr);
     }
-
-    // if ((m_Instancies[Instance::Index].STARTTIME + m_Instancies[Instance::Index].PERIOD) < constantBuffer.Time.y)
-    //{
-    //     m_Instancies[Instance::Index].Reset(*this, constantBuffer.Time.y);
-    // };
-};
-
-void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcept
-{
-
-    ViewPortSizeBuffer ViewPortSize{{Width, Height}};
-    m_pContext->UpdateSubresource(
-        m_pViewPortSizeBuffer.Get(),
-        0, nullptr, &ViewPortSize, 0, 0);
 };
 
 void Renderer::Draw() const noexcept
 {
-
-    //  static constexpr DirectX::XMFLOAT4 RTVClearColor{0x83 / 256.f, 0x99 / 256.f, 0xCE / 256.f, 0.99f};
     static constexpr DirectX::XMFLOAT4 RTVClearColor{0.0f, 0.0f, 0.0f, 0.99f};
 
     m_pContext->ClearRenderTargetView(Renderer::m_pRTV.Get(), &RTVClearColor.x);
