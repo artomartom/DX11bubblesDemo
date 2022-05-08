@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="F:\Dev\Projects\DX11bubblesDemo\Build\CMakeFiles\DX11bubblesDemo.dir\cmake_pch.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Dev\Projects\DX11bubblesDemo\Source\App.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Dev\Projects\DX11bubblesDemo\Source\Visual\DeviceResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Dev\Projects\DX11bubblesDemo\Source\Visual\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="F:\Dev\Projects\DX11bubblesDemo\Build\CMakeFiles\DX11bubblesDemo.dir\Debug\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Dev\Projects\DX11bubblesDemo\Build\CMakeFiles\DX11bubblesDemo.dir\Release\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Dev\Projects\DX11bubblesDemo\Build\CMakeFiles\DX11bubblesDemo.dir\MinSizeRel\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Dev\Projects\DX11bubblesDemo\Build\CMakeFiles\DX11bubblesDemo.dir\RelWithDebInfo\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Dev\Projects\DX11bubblesDemo\Source\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Precompile Header File">
+      <UniqueIdentifier>{4A1F3700-99D6-3076-8813-FFBBDF1C6641}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{903305CD-0883-3854-A6D8-CB005C560697}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

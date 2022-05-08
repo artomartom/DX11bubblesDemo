@@ -7,17 +7,15 @@ RWTexture2D<circleTexFormat> tex : register(u0);
  
 struct Circle 
 {
-    uint2  size ;
-    float  maxIntensity ;
-    float  outerEdge ;
-    float  InnerEdge ;
+    uint2  size ;           //8
+    float  maxIntensity ;   //4
+    float  InnerEdge ;      //4
+    float  outerEdge ;      //4
 };
 static const Circle crcl  =
 {
- float2( 280.f, 280.f),
- 0.2f,
- 0.96f,
- 0.93f,
+ uint2( 280 , 280 ),
+ 0.2f,  0.93f,0.96f,
 };
 
 //                                                                                                                          CircleCompute
@@ -30,16 +28,20 @@ static const Circle crcl  =
     float2 pos = float2(( float2(dispatchThreadId.xy) / crcl.size) * 2.f - 1.f );                        
 
     float2 blick1 = float2(0.2,.4);  
-    float2 blick2 = float2(-0.61,-.4);
-    float intens = ring(pos, 0.77,0.97);
-    float innerring = ring(pos, .1,0.97);
-    float outerring = ring(float2(1.7,.7)*pos-float2(0.05,-0.05), -1.,0.95);
-    intens+=3.*smoothstep(0.78,1., innerring-outerring);
-    intens+=8.*circle(pos-blick1,0.1 );
-    intens+=2.*circle(pos-blick2,0.2  );
-    float3  color = lerp(float3(0.6123,0.624,.9324), 1.0,.05)*intens;
+    float2 blick2 = float2(-0.31,-.6);
+    
+    float outerRing = ring(pos, 0.77,0.97);
+    float innerRing = ring(pos, .1,0.9);
+    float2 posCircleCover =float2(0.3,-0.05);
+    float circleCover  = circle(float2(0.7,.8)*pos-posCircleCover,.95);
+    outerRing +=1.4*smoothstep(0.1,.5,innerRing-2.5*circleCover);
+    outerRing+=3.*circle(pos-blick1,0.1 );
+    outerRing+=2.*circle(pos-blick2,0.2  );
+    float3 bluishColor=float3(0.6123,0.624,.9324);
+    float3 whiteColor=float3(1.0,1.0,1.0);
+    float3  color = lerp(bluishColor,whiteColor,.05)*outerRing;
         
-    tex[dispatchThreadId.xy] = float4(color,  intens);
+    tex[dispatchThreadId.xy] = float4(color,  outerRing);
  
 }
 // end circle
@@ -69,16 +71,6 @@ static float2 quadPos[6] =
     {-1.f, -1.f},
 };
 
-static float4 colorBuffer[6] = 
-{
-{0xFB / 256.f, 0xB5 / 256.f, 0xE0 / 256.f, 1.f},
-{0xB9 / 256.f, 0x80 / 256.f, 0xCE / 256.f, 1.f},
-{0x49 / 256.f, 0x0A / 256.f, 0xBA / 256.f, 1.f},
-{0x4B / 256.f, 0x37 / 256.f, 0x8E / 256.f, 1.f},
-{0x2B / 256.f, 0x6D / 256.f, 0xE2 / 256.f, 1.f},
-{0x1C / 256.f, 0x29 / 256.f, 0xB8 / 256.f, 1.f},
-};
-
 //Instance buffer view for compute shader
 RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
 //                                                                                                                          mainCompute
@@ -90,7 +82,6 @@ RWStructuredBuffer<InstData> ComputeInstancies : register(u0);
     ComputeInstancies[0].size = .2f ;
     ComputeInstancies[0].color = 5;
     ComputeInstancies[0].pos = float2(0.0f,0.0f);
-   
     
 };
 
@@ -126,7 +117,7 @@ float4 mainPixel(VertexOut In) : SV_Target
 {
     float4 tex = CircleTex.Sample( Sampler, In.uv ) ;
     
-    return    float4( lerp(colorBuffer[In.color].xyz,tex.rgb ,tex.a), tex.a) ;  
+    return    float4(  tex.rgb  , tex.a) ;  
     
 };
 
