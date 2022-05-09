@@ -9,19 +9,32 @@ using namespace ::DirectX;
 HRESULT DeviceResource::TestDeviceSupport()
 {
    return S_OK; // TODO
-   // HRESULT hr{};
-   // ComPtr<ID3D11Device> tmp_pDevice{};
-   //
-   // D3D_FEATURE_LEVEL featureLevels[1]{
-   //    D3D_FEATURE_LEVEL_11_0,
-   //};
-   // D3D_FEATURE_LEVEL thisFeatureLevel{};
-   //// first we create temporary Device to ...
-   // H_CHECK(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, featureLevels, _countof(featureLevels), D3D11_SDK_VERSION, &tmp_pDevice, &thisFeatureLevel, nullptr),
-   //         L"D3D11CreateDevice failed");
+   HRESULT hr{};
+   ComPtr<ID3D11Device> tmp_pDevice{};
 
-   //... check feature level
-   // TODO
+   D3D_FEATURE_LEVEL thisFeatureLevel{};
+   // first we create temporary Device to ...
+   if (H_FAIL(hr = D3D11CreateDevice(
+                  nullptr, // default adapter
+                  D3D_DRIVER_TYPE_HARDWARE,
+                  nullptr, 0,
+                  nullptr, // use default array {    D3D_FEATURE_LEVEL_11_0,  ...,    D3D_FEATURE_LEVEL_9_1}
+                  0,
+                  D3D11_SDK_VERSION,
+                  &tmp_pDevice,
+                  &thisFeatureLevel,
+                  nullptr)))
+      return hr;
+
+   /** ... check feature level
+    * 2 UAVs (to texture2d, structured buffer) - FL 11.0 support 8
+    * shader model 5 
+    */
+
+   if (thisFeatureLevel < D3D_FEATURE_LEVEL_11_0)
+   {
+      return D3D12_ERROR_DRIVER_VERSION_MISMATCH;
+   }
 
    // if (hr < 0)
    //{
@@ -69,9 +82,14 @@ DeviceResource::DeviceResource(_Out_ Renderer &Renderer, _Out_ HRESULT *hr)
    SETDBGNAME_COM(m_pDXGIFactory);
 };
 
-HRESULT DeviceResource::CreateSizeDependentDeviceResources(const HWND &windowHandle, Renderer &Renderer)
+HRESULT DeviceResource::CreateSizeDependentDeviceResources(_In_ const HWND &windowHandle, _Inout_ Renderer &Renderer)
 {
    HRESULT hr{};
+
+   if (!windowHandle)
+   {
+      return ERROR_INVALID_HANDLE_STATE;
+   };
 
    Renderer.m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
    Renderer.m_pRTV.Reset();
@@ -269,12 +287,26 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
     */
    {
 
-      ComputeData val[Renderer.s_DrawInstanceCount]{XMFLOAT2{.1f, .2f}, XMFLOAT2{.1f, .2f}};
+      ComputeData Data[Renderer.s_DrawInstanceCount]{};
+
+      std::srand(Time::GetLocalTime().wMilliseconds);
+
+      for (auto &each : Data)
+      {
+         float angle{XMConvertToRadians((std::rand() % 60) + 100.f)}; // 100 ... 160 degrees
+         XMFLOAT2 unit{cos(angle), sin(angle)};
+         float a{(std::rand() % 1'000) / 1'000.0f};
+         float b{(std::rand() % 1'000) / 1'000.0f};
+
+         XMFLOAT2 pos{(a > b) ? -1.0f : -a, (!(a > b)) ? -1.0f : -b}; // generate pos with either x or y  always beeing -1.0
+         float speed{0.5f + (std::rand() % 500) / 1'000.0f};
+         each = {unit, pos, speed};
+      };
 
       if (H_FAIL(hr = CreateStructuredBuffer(
                      Renderer.s_DrawInstanceCount,
                      sizeof(ComputeData),
-                     &val,
+                     Data,
                      nullptr, // don't need ID3D11buffer pointer
                      &Renderer.m_ComputeBufferUAV,
                      nullptr)))
@@ -370,10 +402,6 @@ HRESULT DeviceResource::ComputeCircleTexture(
    if (imageSize.x == 0u || imageSize.y == 0u || threadGroupCount.x == 0u || threadGroupCount.y == 0u || threadGroupCount.z == 0u)
       return ERROR_INVALID_PARAMETER;
 
-   /** compute shader requirements:
-    * RWTexture2D - FL 11.0
-    *
-    */
    if (m_pDevice->GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
    {
       return ERROR_DEVICE_FEATURE_NOT_SUPPORTED;

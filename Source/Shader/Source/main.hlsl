@@ -39,7 +39,7 @@ static const Circle crcl  =
     outerRing+=2.*circle(pos-blick2,0.2  );
     float3 bluishColor=float3(0.6123,0.624,.9324);
     float3 whiteColor=float3(1.0,1.0,1.0);
-    float3  color = lerp(bluishColor,whiteColor,.05)*outerRing;
+    float3  color = lerp(bluishColor,whiteColor,outerRing);
         
     tex[dispatchThreadId.xy] = float4(color,  outerRing);
  
@@ -64,20 +64,33 @@ struct InstComputeData
 {   
     float2 direction; // 8
     float2 pos; // 8
+    float velosity; // 8
 };
 
 //Instance buffer view for compute shader
 RWStructuredBuffer<Instance> ComputeInst  : register(u0);
 RWStructuredBuffer<InstComputeData> ComputeData : register(u1);
 //                                                                                                                          mainCompute
-[numthreads(1, 1, 1)] void mainCompute(
+#define DRAWINSTANCECOUNT 32
+[numthreads(DRAWINSTANCECOUNT, 1, 1)] void mainCompute(
       uint3 dispatchThreadId
-    : SV_DispatchThreadID     )
+    : SV_DispatchThreadID 
+    )
 {
+   
+    InstComputeData This =  ComputeData[dispatchThreadId.x] ;
      
-    //test
+    float2 pos =float2(0.0,0.0 ); 
+    pos+=  (FrameTime.y%20.)/10.0-1.0;
+    pos*= float2(1.8,0.6);//sqush along x axis to make rise less steep
+    float2 modulator =  This.direction;
+    modulator*=0.05* sin(FrameTime.y*dispatchThreadId.x*.1 );
+
+    pos=mul(pos , float2x2(This.direction.x,-This.direction.y,This.direction.y,This.direction.x  ));
+    pos +=modulator;
+   
+    ComputeInst[dispatchThreadId.x].pos= This.velosity*(pos- This.pos  )  ;
     ComputeInst[dispatchThreadId.x].size =0.2f;
-    ComputeInst[dispatchThreadId.x].pos = ComputeData[ dispatchThreadId.x].pos;
     
 };
 
