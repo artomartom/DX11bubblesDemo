@@ -46,7 +46,7 @@ static const Circle crcl  =
 }
 // end circle
 
-cbuffer ViewPortBuffer : register(b0){ float2 viewPortSize; float  resolution; };
+cbuffer ViewPortBuffer : register(b0){ float2 viewPortSize; float2  resolution; };
 
 //  t - time since application start 
 //  t milisec from start (1.f = 1 sec)
@@ -70,42 +70,55 @@ float2 unit2(float angle)
 {
     return float2(cos(angle),sin(angle));
 }
+
+bool IsOutOfBox( in float2 pos,in float radius,  out float2 side)
+{   
+    
+    float2 box = (1.0/resolution)-radius;
+    if(abs( pos.x)>=abs(box.x) || abs( pos.y)>=abs(box.y) )
+    {
+
+        if( pos.x>=box.x )
+        {
+            side =float2(-1.0,0.0);         // +x
+        }
+        else if( pos.x<=-(box.x) )     // -x
+        {
+            side= float2(1.0,0.0);  
+        }else if( pos.y>=(box.y))      // +y
+        { 
+            side= float2( 0.0,-1.0);  
+        }
+        else // if( pos.y<-(box.y))    // -y
+        {
+            side= float2(0.0,1.0);  
+        };
+            return true;
+    }
+    else
+        return false;
+};
  
 
 //Instance buffer view for compute shader
 RWStructuredBuffer<Instance> ComputeOut  : register(u0);
 RWStructuredBuffer<ComputeData> ComputeIn : register(u1);
 //                                                                                                                          mainCompute
-#define DRAWINSTANCECOUNT 1
+#define DRAWINSTANCECOUNT 100
 [numthreads(DRAWINSTANCECOUNT, 1, 1)] void mainCompute(
       uint3 dispatchThreadId
     : SV_DispatchThreadID 
     )
 {
     ComputeData This =  ComputeIn[dispatchThreadId.x] ;
-    float deltaT=FrameTime.z *0.7f ;
+    float deltaT=FrameTime.z *0.02f ;
  
     This.pos+=This.velocity*deltaT;
-    
-    float radius=0.2;
-    if(This.pos.x>(1.0-radius) )
+    float2 side;
+    if(IsOutOfBox(This.pos,0.02f,side))
     {
-    ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,float2(-1.0,0.0));
+        ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,side);
     }
-    else if(This.pos.x<-(1.0-radius) )
-    {
-    ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,float2(1.0,0.0));
-     }
-    else if(This.pos.y>(1.0/resolution-radius))
-    { 
-    ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,float2( 0.0,-1.0));
-    }
-    else if(This.pos.y<-(1.0/resolution-radius))
-    {
-    ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,float2(0.0,1.0));
-    }
-    
-
 
     ComputeIn[dispatchThreadId.x].pos =This.pos;
     ComputeOut[dispatchThreadId.x].pos=  This.pos ;
@@ -140,9 +153,9 @@ VertexOut mainVertex(uint VertID:SV_VertexID, uint InstID:SV_InstanceID)
     VertexOut Out;
     Out.pos= float4(quadPos[VertID], 0.0f, 1.0f);
     Out.uv = (Out.pos.xy+1.f)/2.f;
-    Out.pos.xy*=0.2f; //scale texture down;
+    Out.pos.xy*=0.02f; //scale texture down;
     Out.pos.xy +=In.pos;
-    Out.pos.y*=resolution;
+    Out.pos.xy*=resolution;
     return  Out;
 };
 

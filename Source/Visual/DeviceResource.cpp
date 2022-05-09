@@ -294,10 +294,10 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
       for (auto &each : Data)
       {
          // float angle{XMConvertToRadians((std::rand() % 60) + 100.f)}; // 100 ... 160 degrees
-         float angle{XMConvertToRadians(23.f)};
+         float angle{XMConvertToRadians(float(std::rand() % 360))};
          XMFLOAT2 velocity{cos(angle), sin(angle)};
-
-         XMFLOAT2 pos{.0, .0};
+         XMFLOAT2 pos{{(std::rand() % 1000) / 500.0f - 1.0f},
+                      {(std::rand() % 1000) / 500.0f - 1.0f}};
 
          each = {velocity, pos};
       };

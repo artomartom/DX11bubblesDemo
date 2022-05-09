@@ -17,10 +17,10 @@ struct InstanceData
 
 struct ViewPortSizeBuffer
 {
-    explicit ViewPortSizeBuffer(float x,float y )
-    :ViewPortSize{x,y},Resolution{x/y}{};
+    explicit ViewPortSizeBuffer(float x, float y)
+        : ViewPortSize{x, y}, Resolution{1.0f, x / y} {};
     DirectX::XMFLOAT2 ViewPortSize{};
-    float Resolution{};
+    DirectX::XMFLOAT2 Resolution{};
 };
 
 struct FrameBuffer
@@ -52,7 +52,7 @@ protected:
     std::unique_ptr<DeviceResource> m_pDeviceResource{};
 
     static constexpr UINT s_DrawVertexCount{6}; // 6 points to draw a quad
-    static constexpr UINT s_DrawInstanceCount{1u};
+    static constexpr UINT s_DrawInstanceCount{100u};
     D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
     Time::Timer Timer{};
