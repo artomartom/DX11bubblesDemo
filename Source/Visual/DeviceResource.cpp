@@ -28,7 +28,7 @@ HRESULT DeviceResource::TestDeviceSupport()
 
    /** ... check feature level
     * 2 UAVs (to texture2d, structured buffer) - FL 11.0 support 8
-    * shader model 5 
+    * shader model 5
     */
 
    if (thisFeatureLevel < D3D_FEATURE_LEVEL_11_0)
@@ -293,14 +293,13 @@ HRESULT DeviceResource::CreateDeviceResources(_Out_ Renderer &Renderer)
 
       for (auto &each : Data)
       {
-         float angle{XMConvertToRadians((std::rand() % 60) + 100.f)}; // 100 ... 160 degrees
-         XMFLOAT2 unit{cos(angle), sin(angle)};
-         float a{(std::rand() % 1'000) / 1'000.0f};
-         float b{(std::rand() % 1'000) / 1'000.0f};
+         // float angle{XMConvertToRadians((std::rand() % 60) + 100.f)}; // 100 ... 160 degrees
+         float angle{XMConvertToRadians(23.f)};
+         XMFLOAT2 velocity{cos(angle), sin(angle)};
 
-         XMFLOAT2 pos{(a > b) ? -1.0f : -a, (!(a > b)) ? -1.0f : -b}; // generate pos with either x or y  always beeing -1.0
-         float speed{0.5f + (std::rand() % 500) / 1'000.0f};
-         each = {unit, pos, speed};
+         XMFLOAT2 pos{.0, .0};
+
+         each = {velocity, pos};
       };
 
       if (H_FAIL(hr = CreateStructuredBuffer(

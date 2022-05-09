@@ -34,7 +34,7 @@ void Renderer::SetPipeLine() const noexcept
 void Renderer::UpdateViewPortSizeBuffer(float Width, float Height) const noexcept
 {
 
-    ViewPortSizeBuffer ViewPortSize{{Width, Height}};
+    ViewPortSizeBuffer ViewPortSize{Width, Height};
     m_pContext->UpdateSubresource(
         m_pViewPortSizeBuffer.Get(),
         0, nullptr, &ViewPortSize, 0, 0);
@@ -44,7 +44,7 @@ void Renderer::UpdateDrawData() noexcept
 {
 
     // Update Timer
-    FrameBuffer constantBuffer{Timer.Count<long>()};
+    FrameBuffer constantBuffer(Timer.Count<long>(), Timer.GetDelta<double>());
     m_pContext->UpdateSubresource(
         m_pFrameBuffer.Get(),
         0, nullptr, &constantBuffer, 0, 0);

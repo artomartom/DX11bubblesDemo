@@ -6,26 +6,31 @@
 
 struct ComputeData
 {
-    DirectX::XMFLOAT2 Direction{};
+    DirectX::XMFLOAT2 Velocity{};
     DirectX::XMFLOAT2 Position{};
-    float Velocity{};
 };
 
 struct InstanceData
 {
     DirectX::XMFLOAT2 pos{};
-    float size{};
 };
 
 struct ViewPortSizeBuffer
 {
+    explicit ViewPortSizeBuffer(float x,float y )
+    :ViewPortSize{x,y},Resolution{x/y}{};
     DirectX::XMFLOAT2 ViewPortSize{};
+    float Resolution{};
 };
 
 struct FrameBuffer
 {
-    explicit FrameBuffer(long long st)
-        : t{st, st / 1000.f, (st % (1000 * 60)) / 1000.f, st % 1000} {/* Log<Console>::Write(L"\r", t.x, t.y, t.z, t.w); */};
+
+    explicit FrameBuffer(long long st, double deltaT)
+        : t{st / 1000.f,                 /// sec.milices
+            (st % (1000 * 60)) / 1000.f, // //sec.milices % 60 min
+            deltaT,                      // time delta
+            deltaT} {/* Log<Console>::Write(t.x, t.y, t.z);*/};
     ::DirectX::XMFLOAT4 t{};
 };
 
@@ -47,7 +52,7 @@ protected:
     std::unique_ptr<DeviceResource> m_pDeviceResource{};
 
     static constexpr UINT s_DrawVertexCount{6}; // 6 points to draw a quad
-    static constexpr UINT s_DrawInstanceCount{32u};
+    static constexpr UINT s_DrawInstanceCount{1u};
     D3D11_VIEWPORT m_ViewPort{0.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
     Time::Timer Timer{};
