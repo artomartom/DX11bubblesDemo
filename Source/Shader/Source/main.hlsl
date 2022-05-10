@@ -80,19 +80,21 @@ bool IsOutOfBox( in float2 pos,in float radius,  out float2 side)
 
         if( pos.x>=box.x )
         {
-            side =float2(-1.0,0.0);         // +x
+            side =float2(-1.0,0.0);    // +x/right 
         }
-        else if( pos.x<=-(box.x) )     // -x
+        else if( pos.x<=-(box.x) )     // -x/left
         {
             side= float2(1.0,0.0);  
-        }else if( pos.y>=(box.y))      // +y
+        }else if( pos.y>=(box.y))      // +y/top
         { 
             side= float2( 0.0,-1.0);  
         }
-        else // if( pos.y<-(box.y))    // -y
+        else // if( pos.y<-(box.y))    // -y/botton
         {
             side= float2(0.0,1.0);  
         };
+
+
             return true;
     }
     else
@@ -111,13 +113,16 @@ RWStructuredBuffer<ComputeData> ComputeIn : register(u1);
     )
 {
     ComputeData This =  ComputeIn[dispatchThreadId.x] ;
-    float deltaT=FrameTime.z *0.02f ;
- 
+    float deltaT=FrameTime.z *0.2f ;
     This.pos+=This.velocity*deltaT;
+ 
     float2 side;
     if(IsOutOfBox(This.pos,0.02f,side))
-    {
-        ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,side);
+    {   
+        if(dot(This.velocity,side)<0.0f)//if vectors is already stack outside the box we should avoid reflecting in 
+        {
+            ComputeIn[dispatchThreadId.x].velocity =reflect(This.velocity,side);
+        }
     }
 
     ComputeIn[dispatchThreadId.x].pos =This.pos;
