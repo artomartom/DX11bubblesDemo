@@ -44,7 +44,8 @@ void Renderer::UpdateDrawData() noexcept
 {
 
     // Update Timer
-    FrameBuffer constantBuffer(Timer.Count<long>(), Timer.GetDelta<double>());
+    Timer.Count();
+    FrameBuffer constantBuffer(Timer.GetCount<long long>(), Timer.GetDelta<double>());
     m_pContext->UpdateSubresource(
         m_pFrameBuffer.Get(),
         0, nullptr, &constantBuffer, 0, 0);

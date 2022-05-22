@@ -18,7 +18,7 @@ struct InstanceData
 struct ViewPortSizeBuffer
 {
     explicit ViewPortSizeBuffer(float x, float y)
-        : ViewPortSize{x, y}, Resolution{1.0f, x / y} {};
+        : ViewPortSize{x, y}, Resolution{(x <= y) ? 1.0 : y / x, (x > y) ? 1.0f : x / y} {};
     DirectX::XMFLOAT2 ViewPortSize{};
     DirectX::XMFLOAT2 Resolution{};
 };

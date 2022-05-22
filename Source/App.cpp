@@ -26,16 +26,16 @@ public:
   void OnWindowActivate(_In_ const ::Window::ActivateArgs &args) noexcept
   {
 
-    if (CoreApp::m_IsVisible != args.m_IsMinimized)
+    if (CoreApp::m_IsVisible != args.IsMinimized)
     {
-      CoreApp::m_IsVisible = args.m_IsMinimized;
+      CoreApp::m_IsVisible = args.IsMinimized;
       m_ShouldDraw = !CoreApp::m_IsVisible;
     };
   };
 
   void OnKeyStroke(_In_ const ::Window::KeyEventArgs &args) noexcept
   {
-    switch (args.m_VirtualKey)
+    switch (args.VirtualKey)
     {
       CASE(VK_ESCAPE, { CoreApp::Close(); });
       CASE(VK_SPACE, { Renderer::Timer.Switch(); });
@@ -49,7 +49,7 @@ public:
     if (H_OK(hr = DeviceResource::TestDeviceSupport()))
     {
 
-      SIZE RTSize{RECTWIDTH(args.m_Rect), RECTHEIGHT(args.m_Rect)};
+      SIZE RTSize{RECTWIDTH(args.Rect), RECTHEIGHT(args.Rect)};
       m_pDeviceResource = std::make_unique<DeviceResource>(*this, &hr);
       if (H_OK(hr))
       {
@@ -71,13 +71,13 @@ public:
 
   void OnSizeChanged(_In_ const ::Window::SizeChangedArgs &args) noexcept
   {
-    float NewWidth{static_cast<float>(args.m_New.cx)};
-    float NewHeight{static_cast<float>(args.m_New.cy)};
+    float NewWidth{static_cast<float>(args.New.cx)};
+    float NewHeight{static_cast<float>(args.New.cy)};
 
-    switch (args.m_Type)
+    switch (args.Type)
     {
-        CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); break; });
-        CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); break; });
+      CASE(::Window::SizeChangedArgs::Type::Minimized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(false, nullptr); break; });
+      CASE(::Window::SizeChangedArgs::Type::Maximized, {m_pDeviceResource->GetSwapChain()->SetFullscreenState(true, nullptr); break; });
     }
     if (m_ViewPort.Width == NewWidth && m_ViewPort.Height == NewHeight)
     {
